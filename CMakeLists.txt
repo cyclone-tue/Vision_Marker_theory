@@ -22,6 +22,10 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 add_executable(GenerateMarker Generate_Markers.cpp)
 add_executable(DetectMarker Detect_Markers.cpp)
+add_executable(CalibrateCamera calibrate_camera_charuco.cpp)
+add_executable(CreateCalibration create_calibration.cpp)
 
 target_link_libraries(GenerateMarker ${OpenCV_LIBS})
 target_link_libraries(DetectMarker ${OpenCV_LIBS})
+target_link_libraries(CalibrateCamera ${OpenCV_LIBS})
+target_link_libraries(CreateCalibration ${OpenCV_LIBS})

@@ -1,7 +1,9 @@
 #include "opencv2/aruco.hpp"
 #include "opencv2/highgui.hpp"
+#include <iostream>
 
 using namespace cv;
+using namespace std;
 
 namespace {
     const char* about = "Create an ArUco marker image";
@@ -33,6 +35,8 @@ int main(int argc, char *argv[]){
     bool showImage = parser.get<bool>("si");
 
     String out = parser.get<String>(0);
+
+    cout << dictionaryId;
 
     Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::PREDEFINED_DICTIONARY_NAME(dictionaryId));
 
