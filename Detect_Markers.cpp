@@ -4,9 +4,10 @@
 #include <opencv/cv.hpp>
 #include <cmath>
 #include <math.h>
+#include "DebugServer.h"
 
 
-Mat Dimention3(Mat init, Mat beforeHoop, Mat afterHoop, Vec3d hoop_pos);
+
 
 using namespace cv;
 using namespace std;
@@ -21,6 +22,7 @@ namespace {
     const double v_after = 1;
     const double d_before = 2;
     const double v_in = 1;
+    const int debugPort = 8080;
 
 }
 
@@ -43,6 +45,9 @@ static bool readCameraParameters(String filename, OutputArray cameraMatrix, Outp
     fs.release();
     return true;
 }
+void Dimention3(Mat init, Mat beforeHoop, Mat afterHoop, Vec3d hoop_pos, OutputArray r) {
+}
+
 
 void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, InputOutputArray output, InputArray img){
     Mat init = Mat::zeros(3, 1, CV_64FC1);
@@ -80,14 +85,12 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, InputOutputA
     afterHoop.col(0) = pointFinal;
     afterHoop.col(1) = vel_corr_fin;
 
-    Mat r = Dimention3(init, beforeHoop, afterHoop, hoop_pos);
+    Mat r;
+    Dimention3(init, beforeHoop, afterHoop, hoop_pos, r);
     r.copyTo(output);
 
 }
 
-Mat Dimention3(Mat init, Mat beforeHoop, Mat afterHoop, Vec3d hoop_pos) {
-    return Mat();
-}
 
 
 int main(int argc, char* argv[]){
@@ -103,6 +106,8 @@ int main(int argc, char* argv[]){
     String filename = parser.get<String>("cal");
     VideoCapture cap;
     cap.open(cam);
+
+    DebugServer server = DebugServer(debugPort);
 
     Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
 
@@ -188,6 +193,7 @@ int main(int argc, char* argv[]){
     }
 
     cap.release();
+    server.stop();
 
 }
 

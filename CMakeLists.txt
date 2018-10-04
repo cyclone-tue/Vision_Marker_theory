@@ -9,6 +9,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(Threads REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 list(APPEND OpenCV_LIBS opencv_aruco)
 
@@ -21,11 +22,11 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 
 add_executable(GenerateMarker Generate_Markers.cpp)
-add_executable(DetectMarker Detect_Markers.cpp)
+add_executable(DetectMarker Detect_Markers.cpp DebugServer.cpp base64.cpp)
 add_executable(CalibrateCamera calibrate_camera_charuco.cpp)
 add_executable(CreateCalibration create_calibration.cpp)
 
 target_link_libraries(GenerateMarker ${OpenCV_LIBS})
-target_link_libraries(DetectMarker ${OpenCV_LIBS})
+target_link_libraries(DetectMarker ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(CalibrateCamera ${OpenCV_LIBS})
 target_link_libraries(CreateCalibration ${OpenCV_LIBS})
