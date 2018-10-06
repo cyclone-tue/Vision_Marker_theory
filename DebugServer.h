@@ -20,15 +20,19 @@ public:
     void setImage(InputArray image);
 
 private:
+    void runServer();
+
     thread server_thread;
-    void runServer(int port);
-    int socket_fd, new_socket = 0;
+    int socket_fd;
     list<int> clients ={};
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
     Mat image;
     bool running = true;
+    int f_port;
+    std::string f_addr;
+    struct addrinfo * f_addrinfo;
 };
 #endif //MARKER_VISION_DEBUGSERVER_H
 

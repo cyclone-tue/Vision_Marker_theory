@@ -107,7 +107,7 @@ int main(int argc, char* argv[]){
     VideoCapture cap;
     cap.open(cam);
 
-    DebugServer server = DebugServer(debugPort);
+    DebugServer server = DebugServer("127.0.0.1", debugPort);
 
     Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
 
