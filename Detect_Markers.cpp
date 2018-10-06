@@ -187,6 +187,7 @@ int main(int argc, char* argv[]){
 
         }
         imshow("out", imageCopy);
+        server.setImage(imageCopy);
         char key = (char) waitKey(1);
         if (key == 27) break;
 

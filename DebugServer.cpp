@@ -1,6 +1,8 @@
 #include <cstring>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <iostream>
+#include <netdb.h>
 #include "DebugServer.h"
 #include "base64.h"
 
@@ -15,28 +17,44 @@ void DebugServer::setImage(InputArray img) {
     Mat frame;
     resize(image, frame, Size(640, 480));
     vector<uchar> buffer;
-    imencode(".img", frame, buffer);
+    imencode(".bmp", frame, buffer);
     string encoded = base64_encode(buffer.data(), static_cast<unsigned int>(buffer.size()));
-    if(new_socket != NULL){
-        send(new_socket, encoded.c_str(), sizeof(encoded));
+    list<int> removed = {};
+    for(int c : clients){
+        size_t length = strlen(encoded.c_str());
+        cout << length << endl;
+        //send(c, &strlen(encoded.c_str()), sizeof(size_t), 0);
+        if(send(c, encoded.c_str(), strlen(encoded.c_str()), 0) == -1){
+            removed.push_back(c);
+            //cout << "Removed client from list" <<endl;
+        }
     }
-
+    for (int r: removed){
+        clients.remove(r);
+    }
+    removed.clear();
 
 }
 
 void DebugServer::stop() {
-    terminate();
+    running = false;
 }
 
-void DebugServer::runServer(int port) {
-    if ((DebugServer::socket_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0){
+void DebugServer::runServer(const string& addr, int port) {
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = IPPROTO_UDP;
+    int r(getaddrinfo())
+    if ((DebugServer::socket_fd = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, IPPROTO_UDP)) == 0){
         perror("Socker creation failed");
         return;
     }
-    if (setsockopt(DebugServer::socket_fd, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, &(DebugServer::opt), sizeof(DebugServer::opt))){
+    /*if (setsockopt(DebugServer::socket_fd, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, &(DebugServer::opt), sizeof(DebugServer::opt))){
         perror("Could not set socket options.");
         return;
-    }
+    }*/
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
@@ -45,14 +63,16 @@ void DebugServer::runServer(int port) {
         perror("Could not bind to port");
         return;
     }
-
-    if (listen(socket_fd, 3) < 0){
-        perror("Could not listen for sockets.");
-        return;
-    }
-    if((new_socket = accept(socket_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0){
-        perror("Could not open new connection.");
-        return;
+    while(running){
+        if (listen(socket_fd, 3) < 0){
+            perror("Could not listen for sockets.");
+            return;
+        }
+        if((new_socket = accept(socket_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0){
+            perror("Could not open new connection.");
+            return;
+        }
+        clients.push_back(new_socket);
     }
 
     return;
