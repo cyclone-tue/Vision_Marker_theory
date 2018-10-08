@@ -19,6 +19,8 @@ public:
 
     void setImage(InputArray image);
 
+    struct addrinfo * getAddressInfo();
+
 private:
     void runServer();
 

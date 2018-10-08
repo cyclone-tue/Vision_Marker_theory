@@ -12,7 +12,19 @@ DebugServer::DebugServer(const string& addr, int port)
 : f_port(port), f_addr(addr)
 {
     runServer();
-
+    /*char decimal_port[16];
+    snprintf(decimal_port, sizeof(decimal_port), "%d", f_port);
+    decimal_port[sizeof(decimal_port)/ sizeof(decimal_port[0]) - 1] = '\0';
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_protocol = IPPROTO_UDP;
+    int r(getaddrinfo(f_addr.c_str(), decimal_port, &hints, & f_addrinfo));
+    if(r != 0 || f_addrinfo == NULL){
+        perror("invalid address or port.");
+        return;
+    }*/
 }
 
 void DebugServer::setImage(InputArray img) {
@@ -88,4 +100,8 @@ void DebugServer::runServer() {
         clients.push_back(new_socket);
     }*/
     //send(new_socket, "Hello world" , strlen("Hello world"), 0);
+}
+
+struct addrinfo *DebugServer::getAddressInfo() {
+    return f_addrinfo;
 }

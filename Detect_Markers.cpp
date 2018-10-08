@@ -4,6 +4,7 @@
 #include <opencv/cv.hpp>
 #include <cmath>
 #include <math.h>
+#include <netdb.h>
 #include "DebugServer.h"
 
 
@@ -107,7 +108,16 @@ int main(int argc, char* argv[]){
     VideoCapture cap;
     cap.open(cam);
 
-    DebugServer server = DebugServer("127.0.0.1", debugPort);
+    //DebugServer server = DebugServer("127.0.0.1", debugPort);
+    /*DebugServer debugServer = DebugServer("127.0.0.1", debugPort);
+    struct addrinfo * addressinfo = debugServer.getAddressInfo();*/
+
+    Mat img;
+    cap >> img;
+    double fps = cap.get(CV_CAP_PROP_FPS);
+    int codec = VideoWriter::fourcc('M', 'J', 'E' ,'G');
+
+    VideoWriter server = VideoWriter("udp://127.0.0.1:8080", codec, fps, img.size(), true);
 
     Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
 
@@ -187,14 +197,18 @@ int main(int argc, char* argv[]){
 
         }
         imshow("out", imageCopy);
-        server.setImage(imageCopy);
+        //server.setImage(imageCopy);
+        Mat outputImage;
+        cvtColor(imageCopy, outputImage, COLOR_Lab2BGR);
+        server.write(imageCopy);
         char key = (char) waitKey(1);
         if (key == 27) break;
 
     }
 
     cap.release();
-    server.stop();
+    //server.stop();
+    server.release();
 
 }
 
