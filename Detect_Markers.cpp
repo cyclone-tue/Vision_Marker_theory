@@ -1,5 +1,6 @@
 #include "opencv2/aruco.hpp"
 #include "opencv2/highgui.hpp"
+#include "DetectMarker.h"
 #include <iostream>
 #include <opencv/cv.hpp>
 #include <cmath>
@@ -16,6 +17,9 @@ using namespace std;
 using namespace Eigen;
 
 VectorXd coef_vec2(6);
+VideoCapture cap;
+Mat cameraMatrix, distCoef;
+Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
 
 namespace {
     const char* keys =
@@ -23,11 +27,11 @@ namespace {
             "{cam | 0  | camera input to use}";
     const double markerSize = 0.07; // Marker side length in meters
     const int markerId = 23;
-    const double d_after = 1;
-    const double v_after = 1;
-    const double d_before = 2;
-    const double v_in = 1;
-    const Vec3d hoop_offset = Vec3d(0,0,0);//Offset variable in world space from center of marker to center of hoop.
+    const double d_after = 0.1;
+    const double v_after = 0.1;
+    const double d_before = 0.1;
+    const double v_in = 0.1;
+    const Vec3d hoop_offset = Vec3d(0,-0.37,0);//Offset variable in world space from center of marker to center of hoop.
 
 }
 
@@ -126,7 +130,7 @@ MatrixXd mainm(double iteration, double waypoints, double i, double coef, Matrix
 
 
 // This method is for path planning
-MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final, MatrixXd hoop_pos) {
+MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final) {
 
     //the point before the hoop where we still see the hoop
     MatrixXd p33(3,3);
@@ -199,50 +203,145 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     Mat dist_corr_fin = Mat::zeros(3, 1, CV_64FC1);
     Mat vel_corr_fin = Mat::zeros(3, 1, CV_64FC1);
     hoopRotMat.copyTo(R);
+    //cout << "Rotation matrix: " << R << endl;
+    Mat entryPointData = Mat::zeros(3,2, CV_64FC1);//Two columns. One for position, one for speed.
+    Mat exitPointData = Mat::zeros(3,2, CV_64FC1);//Two columns. One for position, one for speed.
+    Mat hoop_pos = Mat::zeros(3,2, CV_64FC1);
+    Mat hoop_pos_data = hoop_pos(Rect(Point2f(0,0), Size(1,3)));//Mat::zeros uses row, cols notation. Size uses width, height notation.
+    //cout << "Hoop_ps_data: " << hoop_pos_data << endl;
+    hoopTransVec.copyTo(hoop_pos_data);
+    //cout<< "HoopPos: " << hoop_pos << endl;
 
-    Mat distanceBeforeHoop = Mat::zeros(3, 1, CV_64FC1);
-    Mat velocityBeforeHoop = Mat::zeros(3, 1, CV_64FC1);
-    Mat distanceAfterHoop = Mat::zeros(3, 1, CV_64FC1);
-    Mat velocityAfterHoop = Mat::zeros(3, 1, CV_64FC1);
-    Vec3d hoop_pos;
-    hoopTransVec.copyTo(hoop_pos);
+    entryPointData.at<double>(2,0) = d_before;
+    entryPointData.at<double>(2,1) = -v_in;
+    exitPointData.at<double>(2,0) = -d_after;
+    exitPointData.at<double>(2,1) = -v_after;
 
-    distanceAfterHoop.at<double>(1,0) = d_after;
-    velocityAfterHoop.at<double>(1,0) = v_after;
-    distanceBeforeHoop.at<double>(1,0) = d_before;
-    velocityBeforeHoop.at<double>(1,0) = v_in;
+    Mat entryCorrection = R * entryPointData;
+    Mat exitCorrection = R * exitPointData;
 
-    dist_corr_in = R * distanceBeforeHoop;
-    dist_corr_fin = R * distanceAfterHoop;
-    vel_corr_in = R * velocityBeforeHoop;
-    vel_corr_fin = R * velocityAfterHoop;
+    Mat beforeHoop = hoop_pos + entryCorrection;
+    beforeHoop = beforeHoop.t();
 
-    Mat pointBeforeHoop = hoop_pos + dist_corr_in;
-    Mat beforeHoop = Mat::zeros(2, 3, CV_64F);
-    beforeHoop.col(0) = pointBeforeHoop;
-    beforeHoop.col(1) = vel_corr_in;
-
-    Mat pointFinal = Mat::zeros(1,3, CV_64F);
-    pointFinal = hoop_pos - dist_corr_fin;
-    Mat afterHoop = Mat::zeros(3, 3, CV_64F);
-    afterHoop.col(0) = pointFinal;
-    afterHoop.col(1) = vel_corr_fin;
+    Mat afterData = hoop_pos + exitCorrection;
+    Mat afterHoop = Mat::zeros(3,3,CV_64FC1);
+    Mat afterHoop_data = afterHoop(Rect(Point2f(0,0), Size(2,3)));
+    afterData.copyTo(afterHoop_data);
+    afterHoop = afterHoop.t();
 
     //cout << "Initialized pathplanner variables" << endl;
+
+    //cout << "Init: " << init << endl << "beforeHoop: " << beforeHoop << endl << "afterHoop: " << afterHoop << endl;// <<  "hoop_pos: " << hoop_pos << endl;
 
     Mat r;
     MatrixXd initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen;
     cv2eigen(init, initEigen);
     cv2eigen(beforeHoop, beforeHoopEigen);
     cv2eigen(afterHoop, afterHoopEigen);
-    cv2eigen(hoop_pos, hoop_posEigen);
-    MatrixXd result = Dimention3(initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);
+    MatrixXd result = Dimention3(initEigen, beforeHoopEigen, afterHoopEigen);
     //cout << "Pathplanner executed succesfully" << endl;
     eigen2cv(result, r);
     r.copyTo(output);
-
+    //cout << "Path: " << r.rows << "x" << r.cols << endl;
 }
 
+bool runFrame(bool visualize, OutputArray path) {
+    double foundMarker = false;
+    Mat image, imageCopy;
+    cap.retrieve(image);
+    image.copyTo(imageCopy);
+
+    vector<int> ids;
+    vector<vector<Point2f>> corners;
+    aruco::detectMarkers(image, dictionary, corners, ids);
+
+    //At least one marker detected
+    if (!ids.empty()) {
+        aruco::drawDetectedMarkers(imageCopy, corners, ids);
+        vector<Vec3d> rvecs, tvecs;
+        aruco::estimatePoseSingleMarkers(corners, markerSize, cameraMatrix, distCoef, rvecs, tvecs);
+        for (int i = 0; i < ids.size(); i++) {
+            if (ids[i] == markerId) {
+                Mat rotMat;
+
+                Rodrigues(rvecs[i], rotMat);//Calculate rotation matrix for marker
+
+                Mat pos = rotMat.t() * Mat(tvecs[i]); //Calculate marker position in world space
+                pos = pos + Mat(hoop_offset); //Add offset in world space to get center of hoop.
+                //cout << pos << endl;
+
+                Mat pixelsTranslated = rotMat * pos;
+                Vec3d pixels;
+                pixelsTranslated.copyTo(pixels);
+                tvecs[i] = pixels;
+                double sy = sqrt(pow(rotMat.at<double>(0, 0), 2) + pow(rotMat.at<double>(1, 0), 2));
+                bool singular = sy < 1e-6;
+                double rollTemp, pitchTemp, yawTemp;
+                if (!singular) {
+                    rollTemp = atan2(rotMat.at<double>(2, 1), rotMat.at<double>(2, 2));
+                    pitchTemp = atan2(-rotMat.at<double>(2, 0), sy);
+                    yawTemp = atan2(rotMat.at<double>(1, 0), rotMat.at<double>(0, 0));
+                } else {
+                    rollTemp = atan2(rotMat.at<double>(2, 1), rotMat.at<double>(2, 2));
+                    pitchTemp = 0;
+                    yawTemp = atan2(rotMat.at<double>(1, 0), rotMat.at<double>(0, 0));
+                }
+
+                double yaw = -pitchTemp;
+                double roll = -yawTemp;
+                double pitch = M_PI - rollTemp;
+                if (pitch > M_PI) {
+                    pitch -= 2 * M_PI;
+                }
+
+                double x = pos.at<double>(0, 0);
+                double y = pos.at<double>(1, 0);
+                double z = pos.at<double>(2, 0);
+
+
+
+                //cout << "x " << x << ", y : " << y << ", z :" << z <<  ", yaw: " << yaw/M_PI*180 << ", pitch: " << pitch/M_PI*180 << ", roll: " << roll/M_PI*180 << endl;
+                if(visualize){
+                    aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvecs[i], tvecs[i], markerSize);
+                }
+
+                Mat pathData;
+                Mat input = Mat(tvecs[i]);
+                //cout << input << endl;
+                runPathPlanner(input, rotMat, pathData);
+
+
+                if(visualize){
+                    vector<Point3d> pathPoints;
+                    for (int i = 0; i < pathData.cols; i++) {
+                        Mat col = pathData.col(i);
+                        pathPoints.push_back(Point3d(col.at<double>(0, 0), col.at<double>(4, 0), col.at<double>(8, 0)));
+                    }
+                    //cout << "Path points: " << pathPoints << endl;
+                    //cout << "Created path points." << endl;
+                    vector<Point2d> imagePoints;
+                    projectPoints(pathPoints, Vec3d(0, 0, 0), Vec3d(0, 0, 0), cameraMatrix, distCoef, imagePoints);
+                    for (int j = 0; j < imagePoints.size() - 1; j++) {
+                        //cout << imagePoints[j] << endl;
+                        line(imageCopy, imagePoints[j], imagePoints[j + 1], Scalar(int(255 / imagePoints.size() * j), 0,
+                                                                                   int(255 / imagePoints.size() *
+                                                                                       (imagePoints.size() - j))), 3);
+                    }
+                }
+                pathData.copyTo(path);
+                foundMarker = true;
+                //cout << "Drawn lines" << endl;
+                //cout << path << endl;
+            }
+
+        }
+
+    }
+    if(visualize){
+        imshow("out", imageCopy);
+    }
+    return foundMarker;
+}
 
 
 int main(int argc, char* argv[]){
@@ -256,104 +355,49 @@ int main(int argc, char* argv[]){
 
     int cam = parser.get<int>("cam");
     String filename = parser.get<String>("cal");
-    VideoCapture cap;
-    cap.open(cam);
 
-    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
 
-    Mat cameraMatrix, distCoef;
+    setupVariables(cam, filename);
 
-    if(!readCameraParameters(filename, cameraMatrix, distCoef)){
-        cout << "Could not load camera calibration file: " << filename << endl;
-    }else{
-        cout << cameraMatrix << endl;
-        cout << distCoef << endl;
-    }
-
-    while(cap.grab()){
-        Mat image, imageCopy;
-        cap.retrieve(image);
-        image.copyTo(imageCopy);
-
-        vector<int> ids;
-        vector<vector<Point2f>> corners;
-        aruco::detectMarkers(image, dictionary, corners, ids);
-
-        //At least one marker detected
-        if(!ids.empty()){
-            aruco::drawDetectedMarkers(imageCopy, corners, ids);
-            vector<Vec3d> rvecs, tvecs;
-            aruco::estimatePoseSingleMarkers(corners, markerSize, cameraMatrix, distCoef, rvecs, tvecs);
-            for(int i=0; i<ids.size(); i++){
-                if(ids[i] == markerId){
-                    Mat rotMat;
-
-                    Rodrigues(rvecs[i], rotMat);//Calculate rotation matrix for marker
-
-                    Mat pos = rotMat.t()*Mat(tvecs[i]); //Calculate marker position in world space
-                    pos = pos + Mat(hoop_offset); //Add offset in world space to get center of hoop.
-                    //cout << pos <<endl;
-
-                    Mat pixelsTranslated = rotMat * pos;
-                    Vec3d pixels;
-                    pixelsTranslated.copyTo(pixels);
-                    tvecs[i] = pixels;
-                    double sy = sqrt(pow(rotMat.at<double>(0,0),2) + pow(rotMat.at<double>(1,0), 2));
-                    bool singular = sy < 1e-6;
-                    double rollTemp, pitchTemp, yawTemp;
-                    if(!singular){
-                        rollTemp = atan2(rotMat.at<double>(2,1), rotMat.at<double>(2,2));
-                        pitchTemp = atan2(-rotMat.at<double>(2,0), sy);
-                        yawTemp = atan2(rotMat.at<double>(1,0), rotMat.at<double>(0,0));
-                    }else{
-                        rollTemp = atan2(rotMat.at<double>(2,1), rotMat.at<double>(2,2));
-                        pitchTemp = 0;
-                        yawTemp = atan2(rotMat.at<double>(1,0), rotMat.at<double>(0,0));
-                    }
-
-                    double yaw = -pitchTemp;
-                    double roll = -yawTemp;
-                    double pitch = M_PI - rollTemp;
-                    if(pitch > M_PI){
-                        pitch -= 2*M_PI;
-                    }
-
-                    double x = pos.at<double>(0,0);
-                    double y = pos.at<double>(1,0);
-                    double z = pos.at<double>(2,0);
 
 
 
-                    //cout << "x " << x << ", y : " << y << ", z :" << z <<  ", yaw: " << yaw/M_PI*180 << ", pitch: " << pitch/M_PI*180 << ", roll: " << roll/M_PI*180 << endl;
-                    aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvecs[i],tvecs[i], markerSize);
-                    Mat path;
-                    runPathPlanner(pos, rotMat, path);
-
-                    vector<Point3d> pathPoints;
-                    for(int i = 0; i < path.rows; i+=10){
-                        Mat row = path.row(i);
-                        pathPoints.push_back(Point3d(row.at<double>(0,0), row.at<double>(1,0), row.at<double>(2,0)));
-                    }
-                    //cout << "Created path points." << endl;
-                    vector<Point2d> imagePoints;
-                    projectPoints(pathPoints, Vec3d(0,0,0), Vec3d(0,0,0), cameraMatrix, distCoef, imagePoints);
-                    for (int j = 0; j < imagePoints.size() - 1; j++) {
-                        line(imageCopy, imagePoints[j], imagePoints[j + 1], Scalar(255/imagePoints.size() * j,0,255/imagePoints.size()*(imagePoints.size() - j)), 3);
-                    }
-                    //cout << "Drawn lines" << endl;
-                    //cout << path << endl;
-                }
-
-            }
-
-        }
-        imshow("out", imageCopy);
+    while(cap.grab()){
+        Mat path;
+        runFrame(true, path);
         char key = (char) waitKey(1);
         if (key == 27) break;
-
     }
 
     cap.release();
 
 }
+
+double* MatrixToArray(MatrixXd m) {
+    static double db_array[100][12];
+//    cout << "Path is: " << endl;
+//    cout <<  m  << endl;
+    Map<MatrixXd>(&db_array[0][0], m.rows(), m.cols()) = m;
+    return &db_array[0][0];
+}
+
+    double* output_to_py(MatrixXd m){
+        static double* db_p;
+        Mat path;
+        MatrixXd pathEigen;
+        runFrame(false, path);
+        path = path.t();
+        cv2eigen(path, pathEigen);
+        db_p = MatrixToArray(pathEigen);
+    return db_p;
+    }
+    void setupVariables(int camera, String calibrationFile){
+        cap.open(camera);
+        if(!readCameraParameters(calibrationFile, cameraMatrix, distCoef)){
+            cout << "Could not load camera calibration file: " << calibrationFile << endl;
+        }else{
+            //cout << cameraMatrix << endl;
+            //cout << distCoef << endl;
+        }
+    }
 
