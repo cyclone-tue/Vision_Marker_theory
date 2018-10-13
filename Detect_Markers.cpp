@@ -1,25 +1,10 @@
-#include "opencv2/aruco.hpp"
-#include "opencv2/highgui.hpp"
 #include "DetectMarker.h"
-#include <iostream>
-#include <opencv/cv.hpp>
-#include <cmath>
-#include <math.h>
-#include <Eigen/Dense>
-#include <opencv2/core/eigen.hpp>
-
-using Eigen::MatrixXd;
-using Eigen::Matrix3d;
-using Eigen::VectorXd;
-
-using namespace cv;
-using namespace std;
-using namespace Eigen;
 
 VectorXd coef_vec2(6);
 VideoCapture cap;
 Mat cameraMatrix, distCoef;
 Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
+
 
 namespace {
     const char* keys =
@@ -35,10 +20,12 @@ namespace {
 
 }
 
-static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients){
+bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients){
+    cout << "Opening file: " << filename << endl;
     FileStorage fs(filename, FileStorage::READ);
     if(!fs.isOpened()){
         fs.release();
+        cout << "Could not open file: " << filename << endl;
         return false;
     }
 
@@ -248,7 +235,7 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
 bool runFrame(bool visualize, OutputArray path) {
     double foundMarker = false;
     Mat image, imageCopy;
-    cap.retrieve(image);
+    cap >> image;
     image.copyTo(imageCopy);
 
     vector<int> ids;
@@ -357,12 +344,12 @@ int main(int argc, char* argv[]){
     String filename = parser.get<String>("cal");
 
 
-    setupVariables(cam, filename);
+    setupVariables(cam, filename.c_str());
 
 
 
 
-    while(cap.grab()){
+    while(true){
         Mat path;
         runFrame(true, path);
         char key = (char) waitKey(1);
@@ -381,23 +368,32 @@ double* MatrixToArray(MatrixXd m) {
     return &db_array[0][0];
 }
 
-    double* output_to_py(MatrixXd m){
-        static double* db_p;
-        Mat path;
-        MatrixXd pathEigen;
-        runFrame(false, path);
+double* output_to_py(bool* foundPath){
+    static double* db_p;
+    Mat path;
+    MatrixXd pathEigen;
+    *foundPath = runFrame(false, path);
+    if(*foundPath){
         path = path.t();
-        cv2eigen(path, pathEigen);
-        db_p = MatrixToArray(pathEigen);
+    } else{
+        path = Mat::zeros(100, 12, CV_64FC1);
+    }
+    cv2eigen(path, pathEigen);
+    db_p = MatrixToArray(pathEigen);
     return db_p;
+}
+void setupVariables(int camera, const char* calibrationFile){
+    String filename = String(calibrationFile);
+    cout << "Opening camera" << endl;
+    cap = VideoCapture();
+    cap.open(camera);
+    cout << "Reading camera parameters" << endl;
+    cout << "Calibration file is" << filename << endl;
+    if(!readCameraParameters(filename, cameraMatrix, distCoef)){
+        cout << "Could not load camera calibration file: " << calibrationFile << endl;
+    }else{
+        cout << cameraMatrix << endl;
+        cout << distCoef << endl;
     }
-    void setupVariables(int camera, String calibrationFile){
-        cap.open(camera);
-        if(!readCameraParameters(calibrationFile, cameraMatrix, distCoef)){
-            cout << "Could not load camera calibration file: " << calibrationFile << endl;
-        }else{
-            //cout << cameraMatrix << endl;
-            //cout << distCoef << endl;
-        }
-    }
+}
 

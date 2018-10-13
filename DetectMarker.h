@@ -18,7 +18,7 @@ using namespace cv;
 using namespace std;
 using namespace Eigen;
 
-static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
+bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
 MatrixXd equations_f(MatrixXd M_used, VectorXd cond_vec, int j);
 MatrixXd statef(double coef, MatrixXd M_full, double t);
 MatrixXd mainm(double iteration, double waypoints, double i, double coef, MatrixXd cond_final, double t);
@@ -26,8 +26,9 @@ MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final);
 void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray output);
 bool runFrame(bool visualize, OutputArray path);
 
+
 extern "C" {
-    double* output_to_py(MatrixXd m);
-    void setupVariables(int camera, String calibrationFile);
+    double* output_to_py(bool* foundPath);
+    void setupVariables(int camera, const char* calibrationFile);
 }
 #endif //MARKER_VISION_DETECTMARKER_H
