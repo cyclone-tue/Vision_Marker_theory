@@ -233,7 +233,7 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
 }
 
 bool runFrame(bool visualize, OutputArray path) {
-    double foundMarker = false;
+    bool foundMarker = false;
     Mat image, imageCopy;
     cap >> image;
     image.copyTo(imageCopy);
@@ -368,11 +368,11 @@ double* MatrixToArray(MatrixXd m) {
     return &db_array[0][0];
 }
 
-double* output_to_py(bool* foundPath){
+double* output_to_py(bool* foundPath, bool visualize){
     static double* db_p;
     Mat path;
     MatrixXd pathEigen;
-    *foundPath = runFrame(false, path);
+    *foundPath = runFrame(visualize, path);
     if(*foundPath){
         path = path.t();
     } else{
