@@ -1,7 +1,7 @@
 #include "opencv2/aruco.hpp"
 #include "opencv2/highgui.hpp"
 #include <iostream>
-#include <opencv/cv.hpp>
+#include <opencv/cv.hpp>			//contains CommandLineParser, aruco
 #include <cmath>
 #include <math.h>
 #include <Eigen/Dense>
@@ -28,107 +28,148 @@ namespace {
     const double d_before = 2;
     const double v_in = 1;
     const Vec3d hoop_offset = Vec3d(0,0,0);//Offset variable in world space from center of marker to center of hoop.
-
 }
 
+
+
+// load cameraMatrix and distCoefficients from file
 static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients){
-    FileStorage fs(filename, FileStorage::READ);
-    if(!fs.isOpened()){
-        fs.release();
+    FileStorage fs(filename, FileStorage::READ);	//open file
+    if(!fs.isOpened()){		//return if not opened correctly
+        cout << "Could not load camera calibration file: " << filename << endl;
+		fs.release();
         return false;
     }
-
-    Mat localCamera, localDist;
-    fs["camera_matrix"] >> localCamera;
-    fs["distortion_coefficients"] >> localDist;
-
-    localCamera.copyTo(cameraMatrix);
-    localDist.copyTo(distCoefficients);
-
-    //cout << cameraMatrix << endl;
-    //cout << distCoefficients << endl;
+	
+	OutputArray cameraMatrix, distCoefficients;
+    fs["camera_matrix"] >> cameraMatrix;
+    fs["distortion_coefficients"] >> distCoefficients;
     fs.release();
+	
     return true;
 }
 
-MatrixXd equations_f(MatrixXd M_used, VectorXd cond_vec, int j) {
-    MatrixXd M_u(6, 6);
-    M_u = M_used;
-    VectorXd cond_v(6);
-    cond_v = cond_vec;
 
-    //std::cout << "Here is the matrix A:\n" << M_u << std::endl;
-    //std::cout << "Here is the vector b:\n" << cond_v << std::endl;
-    VectorXd x = M_u.fullPivLu().solve(cond_v);
-    //std::cout << "The solution is:\n" << x << std::endl;
+/*
 
-    coef_vec2 = x;
-    MatrixXd M_full(4, 6);
-    M_full << x(0),x(1),x(2),x(3),x(4),x(5),  0,5*x(0),4*x(1),3*x(2),2*x(3),x(4),  0,0,20*x(0),12*x(1),6*x(2),2*x(3),  0,0,0,60*x(0),24*x(1),6*x(2);
-    return M_full;
+Let a vector "constraints" be given by [p(t=0); pd(t=0); pdd(t=0); p(t=time); pd(t=time); pdd(t=time)].
+Let p(t) = a0*t^5 + a1*t^4 + ... a5*t^0, for a vector "a" with elements [a0, ... a5].
+
+The output matrix satisfies M*a = constraints.
+
+*/
+MatrixXd getMatForDerToConstraints(double time){
+
+	// constructing upper part of matrix
+	
+	MatrixXd upperPart(3, 6);
+	upperPart << 0,0,0,0,0,1, 0,0,0,0,1,0, 0,0,0,2,0,0;
+	
+	// constructing lower part of matrix
+	
+	VectorXd powersOfTime(6);
+	powersOfTime << pow(time,5), pow(time,4), pow(time,3), pow(time,2), pow(time,1), 1;
+	DiagonalMatrix<double, 6> powersOfTimeDiag = vec.asDiagonal();
+	
+	MatrixXd lowerPart(3, 6);
+	lowerPart << 1,1,1,1,1,1, 5,4,3,2,1,0, 20,12,6,2,0,0;
+	lowerPart = lowerPart*powersOfTimeDiag
+	
+	// constructing final matrix
+	MatrixXd mat(6,6);
+    mat.block<3,6>(0,0) = upperPart
+	mat.block<3,6>(3,0) = lowerPart
+	
+	return mat
 }
 
 
+/*
 
-MatrixXd statef(double coef, MatrixXd M_full, double t) {
+The constraints vector contains [p(t=0); pd(t=0); pdd(t=0); p(t=1); pd(t=1); pdd(t=1)].
+It holds that p(t) = a0*t^5 + a1*t^4 + ... a5*t^0, for a vector "a" with elements [a0, ... a5].
 
-    MatrixXd statef(4, 50);
+The output matrix satisfies the following:
+For each row i with elements [e0, ... e5] of the output matrix, it is satisfied that p_i = e0*t^5 + e1*t^4 + ... e5*t^0.
+Here p_i is the i'th derivative p. The matrix has 4 rows.
 
-    MatrixXd M_fullM(4, 6);
-    M_fullM = M_full;
-    //std::cout << M_fullM << std::endl;
+*/
+MatrixXd constraintsToDerivatives(VectorXd constraints, double t) {
+	
+	MatrixXd M = getMatForDerToConstraints(endTime)		// There exists a matrix M(endTime), satisfying M*a = constraints.
+	
+    VectorXd a = M.fullPivLu().solve(constraints);
 
-    coef = coef / t;
+    MatrixXd mat_out(4, 6);
+    mat_out << x(0),x(1),x(2),x(3),x(4),x(5),  0,5*x(0),4*x(1),3*x(2),2*x(3),x(4),  0,0,20*x(0),12*x(1),6*x(2),2*x(3),  0,0,0,60*x(0),24*x(1),6*x(2);
+	
+    return mat_out;
+}
 
-    for (double i = 1.0 / coef; (int)round(i*coef) <= 50; i += (1.0 / coef)) {
-        VectorXd m(6);
-        m << pow(i,5),pow(i,4),pow(i,3),pow(i,2),pow(i,1),1;
-        //std::cout << m << std::endl;
 
+/*
 
-        int n = (int) round(i*coef);
-        //std::cout << n << std::endl;
-        MatrixXd result(4, 1);
-        result = M_fullM * m;
-        //std::cout << result << std::endl;
+The input matrix should satisfy the following:
+For each row i with elements [a0, ... a5] of the input matrix, there is a corresponding variable p_i, for which p_i = a0*t^5 + a1*t^4 + ... a5*t^0.
+Also, p_(i+1) is the derivative of p_i. The matrix has 4 rows.
 
-        //populate the nth column with the result of the matrix mult of M_full and t_instant
-        for (int j = 0; j < 4; ++j) {
-            statef(j,n-1) = result(j);
+The output is a list of states, each of the form [p_0, p_1, p_2, p_3], at the times [endTime/numOfStates, ... , endTime].
+
+*/
+MatrixXd expansionToStateList(double numOfStates, MatrixXd mat, double endTime) {
+	
+    MatrixXd states(4, 50);		// states = [p, pd, pdd, pddd] for several times; state(t = 0) is not included in states						
+
+    dt = endTime/numOfStates;
+
+    for (double t = dt; t <= endTime; t += dt) {
+        VectorXd powersOfTime(6);
+        powersOfTime << pow(t,5), pow(t,4), pow(t,3), pow(t,2), pow(t,1), 1;	// powers of time
+
+        MatrixXd state(4, 1);
+        state = mat * powersOfTime;									// intermediate state calculation
+
+        int stateIndex = (int) round(numOfStates*t/endTime) - 1;
+        for (int j = 0; j <= 3; ++j) {								// populate the nth column of states with state(t)
+            states(j, stateIndex) = result(j);
         }
     }
-    return statef;
+	
+    return states;
 }
 
-MatrixXd mainm(double iteration, double waypoints, double i, double coef, MatrixXd cond_final, double t) {
 
-    MatrixXd state(12,(int) coef);
+/*
 
-    MatrixXd cond_vec = cond_final;
-    int last = 1;
-    int l1 = 3;
-    int l2 = 3;
-    MatrixXd m_used(6,6);
-    m_used << 0,0,0,0,0,1, 0,0,0,0,1,0, 0,0,0,2,0,0, 1,1,1,1,1,1, 5,4,3,2,1,0, 20,12,6,2,0,0;
+The input format should be as follows:
+constraints = [[x0; xd0; xdd0; x1; xd1; xdd1], [y0; ... ], [z0; ... ]] 
 
-    MatrixXd coef_vec_val(6,3);
+The output is a list of states, each of the form state = [x,xd,xdd,xddd, y,yd, ... z,zd, ... ], at times [time/numOfStates, ... , time].
+The begin and end constraints are satisfied by this path.
 
-    for (int j = 1; j <= 3; j++) {
-        MatrixXd M_full(4,6);
-        M_full = equations_f(m_used, cond_vec.col(j-1), j);
+*/
+MatrixXd getPath(double numOfStates, MatrixXd constraints, double time) {
+	
+    MatrixXd states(12,(int) coef);			// state = [x,xd,xdd,xddd, y,yd, ... z,zd, ... ]
 
-        state.block<4,50>((j-1)*4,0) = statef(coef,M_full,t);
-        coef_vec_val.block<6,1>(0,j-1) = coef_vec2;
+    for (int j = 0; j <= 2; j++) {			//iterate over parts(x, y, z) of states
+        MatrixXd derMat(4,6);
+        derMat = constraintsToDerivatives(constraints.col(j), time);
+
+        states.block<4,50>(j*4, 0) = expansionToStateList(numOfStates, derMat, time);
     }
 
-    return state;
+    return states;	
 }
 
 
 // This method is for path planning
 MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final, MatrixXd hoop_pos) {
 
+	// init is current state
+
     //the point before the hoop where we still see the hoop
+	//p33 = [[pos], [vel], [0,0,0]]
     MatrixXd p33(3,3);
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 3; j++) {
@@ -139,7 +180,8 @@ MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final, Matri
     p33(2,1) = 0;
     p33(2,2) = 0;
 
-    MatrixXd final_vec(6, 6);
+	
+    MatrixXd final_vec(6, 6);		// contains constaints
     final_vec.block<3, 3>(0, 0) = init;
     final_vec.block<3, 3>(0, 3) = p33;
     final_vec.block<3, 3>(3, 0) = p33;
@@ -148,26 +190,27 @@ MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final, Matri
     double coef = 50;
     int iteration = 0;
     int t = 0;
-    MatrixXd cond_final(6,3);
+    MatrixXd cond_final(6,3);	// some conditions
     int counter = 0;
     int t_max = 0;
     int x = 5;
     int T_max = 35;
-    int waypoints = 0;
+    int waypoints = 0;		// whats this?
     double yaw = 0;
 
-    MatrixXd state(12, (int)coef);
-    state.block<3, 1>(0, 49) = init.block<3, 1>(0, 0);
+    MatrixXd state(12, (int)coef);		// a list of states
+    state.block<3, 1>(0, 49) = init.block<3, 1>(0, 0);		// put current state in there
     state.block<3, 1>(4, 49) = init.block<3, 1>(0, 1);
     state.block<3, 1>(8, 49) = init.block<3, 1>(0, 2);
 
-    MatrixXd trajectory(12, (int)((waypoints + 2)*coef));
+    MatrixXd trajectory(12, (int)((waypoints + 2)*coef));		// another list of states
 
     for (int i = 1; i <= waypoints + 2; i++) {
 
-        if (iteration >= waypoints) {
+        if (iteration >= waypoints) {		// always true now
 
-            cond_final.block<3, 1>(0, 0) = state.block<3, 1>(0, 49);
+			// cond_final = [[pos0, vel0, acc0] ; [pos1, vel1, acc1]] ; with pos1 = [x1;y1;z1] column vectors 
+            cond_final.block<3, 1>(0, 0) = state.block<3, 1>(0, 49);		// put all constraints in there for this interval( initial state, not between states, end state)
             cond_final.block<3, 1>(0, 1) = state.block<3, 1>(4, 49);
             cond_final.block<3, 1>(0, 2) = state.block<3, 1>(8, 49);
             cond_final.block<3, 3>(3, 0) = final_vec.block<3, 3>(3, (3 * (i - 1)));
@@ -175,7 +218,7 @@ MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final, Matri
         }
         t = 1;
 
-        state = mainm(iteration, waypoints, i, coef, cond_final,t);
+        state = getPath(coef, cond_final, t);  // state is the begin state for each interval?
         //        yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
 
 
@@ -236,7 +279,9 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     cv2eigen(beforeHoop, beforeHoopEigen);
     cv2eigen(afterHoop, afterHoopEigen);
     cv2eigen(hoop_pos, hoop_posEigen);
-    MatrixXd result = Dimention3(initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);
+	
+	// currentstate, states to go through, hoop position
+    MatrixXd result = Dimention3(initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);		// coordinates in camera frame
     //cout << "Pathplanner executed succesfully" << endl;
     eigen2cv(result, r);
     r.copyTo(output);
@@ -245,62 +290,83 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
 
 
 
-int main(int argc, char* argv[]){
-    CommandLineParser parser = CommandLineParser(argc, argv, keys);
-    parser.about("Run marker detection code.");
 
-    if(argc < 2){
-        parser.printMessage();
+
+
+
+VideoCapture getCameraVar(parser){
+	// get camera
+
+    int cam = parser.get<int>("cam");				//camera
+    VideoCapture cap;								//image capture variable
+    cap.open(cam);									//link camera to capture
+	
+	return cap
+}
+
+
+// argument count, argument vector
+int main(int argc, char* argv[]){
+	
+	//parser stuff
+    CommandLineParser parser = CommandLineParser(argc, argv, keys);
+    //parser.about("Run marker detection code.");
+    if(argc < 2){					//check number of arguments
+        parser.printMessage();		//print some standard information of parser (its arguments)
         return 0;
     }
+	
+	
+	VideoCapture cap = getCameraVar(parser)
 
-    int cam = parser.get<int>("cam");
-    String filename = parser.get<String>("cal");
-    VideoCapture cap;
-    cap.open(cam);
+    
+    Mat cameraMatrix, distCoef;		// some matrices , distortion coefficients
+	String filename = parser.get<String>("cal");	//filename for calibration values
+	getCameraParameters(filename, cameraMatrix, distCoef); 
+	
+	Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);		//make dictionary for what??
 
-    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
-
-    Mat cameraMatrix, distCoef;
-
-    if(!readCameraParameters(filename, cameraMatrix, distCoef)){
-        cout << "Could not load camera calibration file: " << filename << endl;
-    }else{
-        cout << cameraMatrix << endl;
-        cout << distCoef << endl;
-    }
+	
+	
+	
+	
+	
 
     while(cap.grab()){
         Mat image, imageCopy;
+		
         cap.retrieve(image);
-        image.copyTo(imageCopy);
+        //image.copyTo(imageCopy);	//why the hell
 
-        vector<int> ids;
-        vector<vector<Point2f>> corners;
-        aruco::detectMarkers(image, dictionary, corners, ids);
+        vector<int> ids;						// ID's of detected markers
+        vector<vector<Point2f>> corners;		// corners of markers
+        aruco::detectMarkers(image, dictionary, corners, ids);		//write to corners, ids
 
         //At least one marker detected
         if(!ids.empty()){
-            aruco::drawDetectedMarkers(imageCopy, corners, ids);
-            vector<Vec3d> rvecs, tvecs;
+            aruco::drawDetectedMarkers(image, corners, ids);		//draw marker
+            vector<Vec3d> rvecs, tvecs;		// rotation and translation of marker in body frame
             aruco::estimatePoseSingleMarkers(corners, markerSize, cameraMatrix, distCoef, rvecs, tvecs);
+			
             for(int i=0; i<ids.size(); i++){
                 if(ids[i] == markerId){
-                    Mat rotMat;
+                    
+					Mat rotMat;								// body to world frame
+                    Rodrigues(rvecs[i], rotMat);			// Calculate rotation matrix for marker
 
-                    Rodrigues(rvecs[i], rotMat);//Calculate rotation matrix for marker
+                    Mat pos = rotMat.t()*Mat(tvecs[i]); 	// Calculate marker position in world space
+                    pos = pos + Mat(hoop_offset); 			// Add offset in world space to get center of hoop.
+                    
 
-                    Mat pos = rotMat.t()*Mat(tvecs[i]); //Calculate marker position in world space
-                    pos = pos + Mat(hoop_offset); //Add offset in world space to get center of hoop.
-                    //cout << pos <<endl;
-
-                    Mat pixelsTranslated = rotMat * pos;
+                    Mat pixelsTranslated = rotMat * pos;	// what does this do? you rotate the marker position in world space with rotMat?
                     Vec3d pixels;
                     pixelsTranslated.copyTo(pixels);
                     tvecs[i] = pixels;
-                    double sy = sqrt(pow(rotMat.at<double>(0,0),2) + pow(rotMat.at<double>(1,0), 2));
+					
+                    double sy = sqrt(pow(rotMat.at<double>(0,0), 2) + pow(rotMat.at<double>(1,0), 2));		//what is sy? sin(theta)?
                     bool singular = sy < 1e-6;
-                    double rollTemp, pitchTemp, yawTemp;
+					
+                    double rollTemp, pitchTemp, yawTemp;		//temp is what
                     if(!singular){
                         rollTemp = atan2(rotMat.at<double>(2,1), rotMat.at<double>(2,2));
                         pitchTemp = atan2(-rotMat.at<double>(2,0), sy);
@@ -311,7 +377,7 @@ int main(int argc, char* argv[]){
                         yawTemp = atan2(rotMat.at<double>(1,0), rotMat.at<double>(0,0));
                     }
 
-                    double yaw = -pitchTemp;
+                    double yaw = -pitchTemp;		//thats not nice
                     double roll = -yawTemp;
                     double pitch = M_PI - rollTemp;
                     if(pitch > M_PI){
@@ -356,4 +422,22 @@ int main(int argc, char* argv[]){
     cap.release();
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
