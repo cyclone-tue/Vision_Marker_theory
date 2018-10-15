@@ -325,6 +325,7 @@ bool runFrame(bool visualize, OutputArray path) {
 
     }
     if(visualize){
+        namedWindow("out", WINDOW_KEEPRATIO);
         imshow("out", imageCopy);
     }
     return foundMarker;
@@ -345,9 +346,6 @@ int main(int argc, char* argv[]){
 
 
     setupVariables(cam, filename.c_str());
-
-
-
 
     while(true){
         Mat path;
