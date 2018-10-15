@@ -239,7 +239,7 @@ bool runFrame(bool visualize, OutputArray path) {
     image.copyTo(imageCopy);
 
     vector<int> ids;
-    vector<vector<Point2f>> corners;
+    vector<vector<Point2f> > corners;
     aruco::detectMarkers(image, dictionary, corners, ids);
 
     //At least one marker detected
