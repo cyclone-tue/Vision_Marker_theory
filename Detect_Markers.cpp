@@ -325,7 +325,6 @@ bool runFrame(bool visualize, OutputArray path) {
 
     }
     if(visualize){
-        namedWindow("out", WINDOW_KEEPRATIO);
         imshow("out", imageCopy);
     }
     return foundMarker;
@@ -393,5 +392,7 @@ void setupVariables(int camera, const char* calibrationFile){
         cout << cameraMatrix << endl;
         cout << distCoef << endl;
     }
+    namedWindow("out", WINDOW_KEEPRATIO);
+    resizeWindow("out", 300,300);
 }
 
