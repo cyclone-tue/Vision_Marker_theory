@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.5)
 project(Marker_Vision)
 
 set(CMAKE_MODULE_PATH /usr/local/lib/cmake)
