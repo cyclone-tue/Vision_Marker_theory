@@ -140,78 +140,47 @@ MatrixXd getPath(double numOfStates, MatrixXd constraints, double time) {
         MatrixXd derMat(4,6);
         derMat = constraintsToDerivatives(constraints.col(j), time);
 
-        states.block<4,50>(j*4, 0) = expansionToStateList(numOfStates, derMat, time);
+        states.block<4,numOfStates>(j*4, 0) = expansionToStateList(numOfStates, derMat, time);
     }
 
     return states;	
 }
 
 
-// This method is for path planning
-MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final, MatrixXd hoop_pos) {
 
-	// init is current state
+MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixXd stateAfterHoop, MatrixXd hoop_pos) {
 
-    //the point before the hoop where we still see the hoop
-	//p33 = [[pos], [vel], [0,0,0]]
-    MatrixXd p33(3,3);
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 3; j++) {
-            p33(i,j) = p_before_hoop(i,j);
-        }
-    }
-    p33(2,0) = 0;
-    p33(2,1) = 0;
-    p33(2,2) = 0;
+	// state = [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]] 
 
-	
-    MatrixXd final_vec(6, 6);		// contains constaints
-    final_vec.block<3, 3>(0, 0) = init;
-    final_vec.block<3, 3>(0, 3) = p33;
-    final_vec.block<3, 3>(3, 0) = p33;
-    final_vec.block<3, 3>(3, 3) = final;
 
-    double coef = 50;
-    int iteration = 0;
-    int t = 0;
-    MatrixXd cond_final(6,3);	// some conditions
-    int counter = 0;
+    MatrixXd allConstraints(6, 6);
+    allConstraints.block<3, 3>(0, 0) = currentState;		// constraints of first trajectory part (currentState -> stateBeforeHoop)
+	allConstraints.block<3, 3>(3, 0) = stateBeforeHoop;
+    allConstraints.block<3, 3>(0, 3) = stateBeforeHoop;		// constraints of second trajectory part (stateBeforeHoop -> stateAfterHoop)
+    allConstraints.block<3, 3>(3, 3) = stateAfterHoop;
+
+    double pointsPerTrajPart = 50;
+    MatrixXd constraints(6,3);		// constraints = [[x0; xd0; xdd0; x1; xd1; xdd1], [y0; ... ], [z0; ... ]] 
     int t_max = 0;
-    int x = 5;
     int T_max = 35;
-    int waypoints = 0;		// whats this?
+    int waypoints = 1;				// number of input waypoints to this function, excluding the currentState and endState(stateAfterHoop in current implementation).
     double yaw = 0;
 
-    MatrixXd state(12, (int)coef);		// a list of states
-    state.block<3, 1>(0, 49) = init.block<3, 1>(0, 0);		// put current state in there
-    state.block<3, 1>(4, 49) = init.block<3, 1>(0, 1);
-    state.block<3, 1>(8, 49) = init.block<3, 1>(0, 2);
+    
+    MatrixXd trajectory(12, (int)((waypoints + 1)*pointsPerTrajectory));
 
-    MatrixXd trajectory(12, (int)((waypoints + 2)*coef));		// another list of states
+    for (int i = 0; i <= waypoints; i++) {
 
-    for (int i = 1; i <= waypoints + 2; i++) {
-
-        if (iteration >= waypoints) {		// always true now
-
-			// cond_final = [[pos0, vel0, acc0] ; [pos1, vel1, acc1]] ; with pos1 = [x1;y1;z1] column vectors 
-            cond_final.block<3, 1>(0, 0) = state.block<3, 1>(0, 49);		// put all constraints in there for this interval( initial state, not between states, end state)
-            cond_final.block<3, 1>(0, 1) = state.block<3, 1>(4, 49);
-            cond_final.block<3, 1>(0, 2) = state.block<3, 1>(8, 49);
-            cond_final.block<3, 3>(3, 0) = final_vec.block<3, 3>(3, (3 * (i - 1)));
-
-        }
+		constraints = allConstraints.block<6,3>(0, i*3) 	// get constraints for this trajectory interval
+        
         t = 1;
 
-        state = getPath(coef, cond_final, t);  // state is the begin state for each interval?
-        //        yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
+		MatrixXd trajPart(12, (int)pointsPerTrajPart);
+        trajPart = getPath(pointsPerTrajPart, constraints, t);  // state is the begin state for each interval?
+        // yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
 
-
-        trajectory.block<12, 50>(0, (int)(iteration * 50)) = state;
-
-        iteration++;
+        trajectory.block<12, pointsPerTrajPart>(0, (int)(i * pointsPerTrajPart)) = state;
     }
-
-
 
     return trajectory;
 }
@@ -265,7 +234,7 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     cv2eigen(hoop_pos, hoop_posEigen);
 	
 	// currentstate, states to go through, hoop position
-    MatrixXd result = Dimention3(initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);		// coordinates in camera frame
+    MatrixXd result = getFastestPath(initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);		// coordinates in camera frame
     //cout << "Pathplanner executed succesfully" << endl;
     eigen2cv(result, r);
     r.copyTo(output);
