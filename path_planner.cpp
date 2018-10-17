@@ -202,47 +202,57 @@ MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixX
 
 
 void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray output){
-    Mat init = Mat::zeros(3, 1, CV_64FC1);
-    Mat R = Mat::zeros(3, 3, CV_64FC1);
+    
 	
-
-	
+    Mat R = Mat::zeros(3, 3, CV_64FC1);			// rotation from world(inertial) frame to body frame
     hoopRotMat.copyTo(R);
-
-    Mat distanceBeforeHoop = Mat::zeros(3, 1, CV_64FC1);
-    Mat velocityBeforeHoop = Mat::zeros(3, 1, CV_64FC1);
-    Mat distanceAfterHoop = Mat::zeros(3, 1, CV_64FC1);
-    Mat velocityAfterHoop = Mat::zeros(3, 1, CV_64FC1);
+	Vec3d hoop_pos;								// hoop translation in body frame
+    hoopTransVec.copyTo(hoop_pos);		
 	
-    Vec3d hoop_pos;
-    hoopTransVec.copyTo(hoop_pos);
-
-    distanceAfterHoop.at<double>(1,0) = d_after;
-    velocityAfterHoop.at<double>(1,0) = v_after;
-    distanceBeforeHoop.at<double>(1,0) = d_before;
-    velocityBeforeHoop.at<double>(1,0) = v_in;
-
-	Mat dist_in = Mat::zeros(3, 1, CV_64FC1);		// set distance		
-    dist_in = R * distanceBeforeHoop;
-	Mat dist_fin = Mat::zeros(3, 1, CV_64FC1);
-    dist_fin = R * distanceAfterHoop;
 	
-	Mat vel_in = Mat::zeros(3, 1, CV_64FC1);		// set velocity
-    vel_in = R * velocityBeforeHoop;
-	Mat vel_fin = Mat::zeros(3, 1, CV_64FC1);
-    vel_fin = R * velocityAfterHoop;
-
-    Mat beforeHoop = Mat::zeros(2, 3, CV_64F);				// set state before hoop
-    beforeHoop.col(0) = hoop_pos + dist_corr_in;
-    beforeHoop.col(1) = vel_corr_in;
-
-    Mat afterHoop = Mat::zeros(3, 3, CV_64F);				// set state after hoop
-    afterHoop.col(0) = hoop_pos - dist_fin;
-    afterHoop.col(1) = vel_corr_fin;
+	// currentState in body coordinates
+	Mat currentState = Mat::zeros(3, 1, CV_64FC1);		
+	
+	
+	// state relative to hoop before hoop
+    Mat dist_in_worldframe = Mat::zeros(3, 1, CV_64FC1);		// world(inertial) frame	
+    Mat vel_in_worldframe = Mat::zeros(3, 1, CV_64FC1);
+	dist_in_worldframe.at<double>(1,0) = d_before;				
+    vel_in_worldframe.at<double>(1,0) = v_in;
+	
+	Mat dist_in = Mat::zeros(3, 1, CV_64FC1);					// body frame
+	Mat vel_in = Mat::zeros(3, 1, CV_64FC1);
+	dist_in = R * dist_in_worldframe;
+    vel_in = R * vel_in_worldframe;
+	
+	// set state before hoop
+	Mat beforeHoop = Mat::zeros(2, 3, CV_64F);
+    beforeHoop.col(0) = hoop_pos + dist_in;
+    beforeHoop.col(1) = vel_in;
+	
+	
+	
+	// state relative to hoop after hoop
+    Mat dist_out_worldframe = Mat::zeros(3, 1, CV_64FC1);		// world(inertial) frame
+    Mat vel_out_worldframe = Mat::zeros(3, 1, CV_64FC1);
+	dist_out_worldframe.at<double>(1,0) = d_after;
+    vel_out_worldframe.at<double>(1,0) = v_after;
+	
+	Mat dist_out = Mat::zeros(3, 1, CV_64FC1);					// body frame
+	Mat vel_out = Mat::zeros(3, 1, CV_64FC1);
+    dist_out = R * dist_out_worldframe;
+    vel_out = R * vel_out_worldframe;
+	
+	// set state after hoop
+	Mat afterHoop = Mat::zeros(3, 3, CV_64F);	
+    afterHoop.col(0) = hoop_pos - dist_out;
+    afterHoop.col(1) = vel_out;
+	
 
     //cout << "Initialized pathplanner variables" << endl;
 
     
+	
     MatrixXd currentStateEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen;			// transform cv matrices to MatrixXd
     cv2eigen(currentState, currentStateEigen);
     cv2eigen(beforeHoop, beforeHoopEigen);
@@ -250,12 +260,12 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     cv2eigen(hoop_pos, hoop_posEigen);
 	
     MatrixXd path = getFastestPath(currentStateEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);		// coordinates in camera frame
-    //cout << "Pathplanner executed succesfully" << endl;
-	
+    
 	Mat r;
     eigen2cv(path, r);
     r.copyTo(output);
 
+	//cout << "Pathplanner executed succesfully" << endl;
 }
 
 
