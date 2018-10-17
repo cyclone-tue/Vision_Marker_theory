@@ -10,6 +10,7 @@
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
 using Eigen::VectorXd;
+using Eigen::DiagonalMatrix;
 
 using namespace cv;
 using namespace std;
@@ -32,24 +33,6 @@ namespace {
 
 
 
-// load cameraMatrix and distCoefficients from file
-static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients){
-    FileStorage fs(filename, FileStorage::READ);	//open file
-    if(!fs.isOpened()){		//return if not opened correctly
-        cout << "Could not load camera calibration file: " << filename << endl;
-		fs.release();
-        return false;
-    }
-	
-	OutputArray cameraMatrix, distCoefficients;
-    fs["camera_matrix"] >> cameraMatrix;
-    fs["distortion_coefficients"] >> distCoefficients;
-    fs.release();
-	
-    return true;
-}
-
-
 /*
 
 Let a vector "constraints" be given by [p(t=0); pd(t=0); pdd(t=0); p(t=time); pd(t=time); pdd(t=time)].
@@ -66,21 +49,21 @@ MatrixXd getMatForDerToConstraints(double time){
 	upperPart << 0,0,0,0,0,1, 0,0,0,0,1,0, 0,0,0,2,0,0;
 	
 	// constructing lower part of matrix
-	
+	//time = 1;		// uncomment this line to see result of old version of code.
 	VectorXd powersOfTime(6);
 	powersOfTime << pow(time,5), pow(time,4), pow(time,3), pow(time,2), pow(time,1), 1;
-	DiagonalMatrix<double, 6> powersOfTimeDiag = vec.asDiagonal();
+	DiagonalMatrix<double, 6> powersOfTimeDiag = powersOfTime.asDiagonal();
 	
 	MatrixXd lowerPart(3, 6);
 	lowerPart << 1,1,1,1,1,1, 5,4,3,2,1,0, 20,12,6,2,0,0;
-	lowerPart = lowerPart*powersOfTimeDiag
+	lowerPart = lowerPart*powersOfTimeDiag;
 	
 	// constructing final matrix
 	MatrixXd mat(6,6);
-    mat.block<3,6>(0,0) = upperPart
-	mat.block<3,6>(3,0) = lowerPart
+    mat.block<3,6>(0,0) = upperPart;
+	mat.block<3,6>(3,0) = lowerPart;
 	
-	return mat
+	return mat;
 }
 
 
@@ -96,12 +79,12 @@ Here p_i is the i'th derivative p. The matrix has 4 rows.
 */
 MatrixXd constraintsToDerivatives(VectorXd constraints, double t) {
 	
-	MatrixXd M = getMatForDerToConstraints(endTime)		// There exists a matrix M(endTime), satisfying M*a = constraints.
+	MatrixXd M = getMatForDerToConstraints(t);		// There exists a matrix M(endTime), satisfying M*a = constraints.
 	
     VectorXd a = M.fullPivLu().solve(constraints);
 
     MatrixXd mat_out(4, 6);
-    mat_out << x(0),x(1),x(2),x(3),x(4),x(5),  0,5*x(0),4*x(1),3*x(2),2*x(3),x(4),  0,0,20*x(0),12*x(1),6*x(2),2*x(3),  0,0,0,60*x(0),24*x(1),6*x(2);
+    mat_out << a(0),a(1),a(2),a(3),a(4),a(5),  0,5*a(0),4*a(1),3*a(2),2*a(3),a(4),  0,0,20*a(0),12*a(1),6*a(2),2*a(3),  0,0,0,60*a(0),24*a(1),6*a(2);
 	
     return mat_out;
 }
@@ -120,9 +103,10 @@ MatrixXd expansionToStateList(double numOfStates, MatrixXd mat, double endTime) 
 	
     MatrixXd states(4, 50);		// states = [p, pd, pdd, pddd] for several times; state(t = 0) is not included in states						
 
-    dt = endTime/numOfStates;
+    double dt = endTime/numOfStates;
 
-    for (double t = dt; t <= endTime; t += dt) {
+	
+    for (double t = dt; t <= endTime+0.001; t += dt) {
         VectorXd powersOfTime(6);
         powersOfTime << pow(t,5), pow(t,4), pow(t,3), pow(t,2), pow(t,1), 1;	// powers of time
 
@@ -131,7 +115,7 @@ MatrixXd expansionToStateList(double numOfStates, MatrixXd mat, double endTime) 
 
         int stateIndex = (int) round(numOfStates*t/endTime) - 1;
         for (int j = 0; j <= 3; ++j) {								// populate the nth column of states with state(t)
-            states(j, stateIndex) = result(j);
+            states(j, stateIndex) = state(j);
         }
     }
 	
@@ -150,7 +134,7 @@ The begin and end constraints are satisfied by this path.
 */
 MatrixXd getPath(double numOfStates, MatrixXd constraints, double time) {
 	
-    MatrixXd states(12,(int) coef);			// state = [x,xd,xdd,xddd, y,yd, ... z,zd, ... ]
+    MatrixXd states(12,(int) numOfStates);			// state = [x,xd,xdd,xddd, y,yd, ... z,zd, ... ]
 
     for (int j = 0; j <= 2; j++) {			//iterate over parts(x, y, z) of states
         MatrixXd derMat(4,6);
@@ -291,8 +275,22 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
 
 
 
-
-
+// load cameraMatrix and distCoefficients from file
+static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients){
+    FileStorage fs(filename, FileStorage::READ);	//open file
+    if(!fs.isOpened()){		//return if not opened correctly
+        cout << "Could not load camera calibration file: " << filename << endl;
+		fs.release();
+        return false;
+    }
+	
+	OutputArray cameraMatrix, distCoefficients;
+    fs["camera_matrix"] >> cameraMatrix;
+    fs["distortion_coefficients"] >> distCoefficients;
+    fs.release();
+	
+    return true;
+}
 
 VideoCapture getCameraVar(parser){
 	// get camera
