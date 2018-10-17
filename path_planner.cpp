@@ -152,7 +152,6 @@ MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixX
 
 	// state = [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]] 
 
-
     MatrixXd allConstraints(6, 6);
     allConstraints.block<3, 3>(0, 0) = currentState;		// constraints of first trajectory part (currentState -> stateBeforeHoop)
 	allConstraints.block<3, 3>(3, 0) = stateBeforeHoop;
@@ -161,26 +160,40 @@ MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixX
 
     double pointsPerTrajPart = 50;
     MatrixXd constraints(6,3);		// constraints = [[x0; xd0; xdd0; x1; xd1; xdd1], [y0; ... ], [z0; ... ]] 
-    int t_max = 0;
-    int T_max = 35;
     int waypoints = 1;				// number of input waypoints to this function, excluding the currentState and endState(stateAfterHoop in current implementation).
     double yaw = 0;
 
-    
+    MatrixXd trajPart(12, (int)pointsPerTrajPart);
     MatrixXd trajectory(12, (int)((waypoints + 1)*pointsPerTrajectory));
 
-    for (int i = 0; i <= waypoints; i++) {	// iterate over trajectory intervals. 
+    for (int i = 0; i <= waypoints; i++) {		// iterate over trajectory intervals. 
 
 		constraints = allConstraints.block<6,3>(0, i*3) 	// get constraints for this trajectory interval
         
+		int t_min = 0;
+		int t_max = 10;	
+		do{						// make sure t_max yields trajectory with valid thrusts
+			t_max = t_max*2;
+			trajPart = getPath(pointsPerTrajPart, constraints, t_max);
+			// yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
+		}
+		while(!hasValidThrusts(trajPart))
+			
+		while(t_max - t_min > 0.1){
+			t = (t_max + t_min)/2;
+			trajPart = getPath(pointsPerTrajPart, constraints, t);
+			// yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
+			if(hasValidThrusts(trajPart)){
+				t_max = t;
+			} else{
+				t_min = t;
+			}
+		}
 		
-        t = 1;
-
-		MatrixXd trajPart(12, (int)pointsPerTrajPart);
-        trajPart = getPath(pointsPerTrajPart, constraints, t);  // state is the begin state for each interval?
+		trajPart = getPath(pointsPerTrajPart, constraints, t_max); 
         // yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
 
-        trajectory.block<12, pointsPerTrajPart>(0, (int)(i * pointsPerTrajPart)) = state;
+        trajectory.block<12, pointsPerTrajPart>(0, (int)(i * pointsPerTrajPart)) = trajPart;
     }
 
     return trajectory;
@@ -191,16 +204,16 @@ MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixX
 void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray output){
     Mat init = Mat::zeros(3, 1, CV_64FC1);
     Mat R = Mat::zeros(3, 3, CV_64FC1);
-    Mat dist_corr_in = Mat::zeros(3, 1, CV_64FC1);
-    Mat vel_corr_in = Mat::zeros(3, 1, CV_64FC1);
-    Mat dist_corr_fin = Mat::zeros(3, 1, CV_64FC1);
-    Mat vel_corr_fin = Mat::zeros(3, 1, CV_64FC1);
+	
+
+	
     hoopRotMat.copyTo(R);
 
     Mat distanceBeforeHoop = Mat::zeros(3, 1, CV_64FC1);
     Mat velocityBeforeHoop = Mat::zeros(3, 1, CV_64FC1);
     Mat distanceAfterHoop = Mat::zeros(3, 1, CV_64FC1);
     Mat velocityAfterHoop = Mat::zeros(3, 1, CV_64FC1);
+	
     Vec3d hoop_pos;
     hoopTransVec.copyTo(hoop_pos);
 
@@ -209,68 +222,44 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     distanceBeforeHoop.at<double>(1,0) = d_before;
     velocityBeforeHoop.at<double>(1,0) = v_in;
 
-    dist_corr_in = R * distanceBeforeHoop;
-    dist_corr_fin = R * distanceAfterHoop;
-    vel_corr_in = R * velocityBeforeHoop;
-    vel_corr_fin = R * velocityAfterHoop;
+	Mat dist_in = Mat::zeros(3, 1, CV_64FC1);		// set distance		
+    dist_in = R * distanceBeforeHoop;
+	Mat dist_fin = Mat::zeros(3, 1, CV_64FC1);
+    dist_fin = R * distanceAfterHoop;
+	
+	Mat vel_in = Mat::zeros(3, 1, CV_64FC1);		// set velocity
+    vel_in = R * velocityBeforeHoop;
+	Mat vel_fin = Mat::zeros(3, 1, CV_64FC1);
+    vel_fin = R * velocityAfterHoop;
 
-    Mat pointBeforeHoop = hoop_pos + dist_corr_in;
-    Mat beforeHoop = Mat::zeros(2, 3, CV_64F);
-    beforeHoop.col(0) = pointBeforeHoop;
+    Mat beforeHoop = Mat::zeros(2, 3, CV_64F);				// set state before hoop
+    beforeHoop.col(0) = hoop_pos + dist_corr_in;
     beforeHoop.col(1) = vel_corr_in;
 
-    Mat pointFinal = Mat::zeros(1,3, CV_64F);
-    pointFinal = hoop_pos - dist_corr_fin;
-    Mat afterHoop = Mat::zeros(3, 3, CV_64F);
-    afterHoop.col(0) = pointFinal;
+    Mat afterHoop = Mat::zeros(3, 3, CV_64F);				// set state after hoop
+    afterHoop.col(0) = hoop_pos - dist_fin;
     afterHoop.col(1) = vel_corr_fin;
 
     //cout << "Initialized pathplanner variables" << endl;
 
-    Mat r;
-    MatrixXd initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen;
-    cv2eigen(init, initEigen);
+    
+    MatrixXd currentStateEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen;			// transform cv matrices to MatrixXd
+    cv2eigen(currentState, currentStateEigen);
     cv2eigen(beforeHoop, beforeHoopEigen);
     cv2eigen(afterHoop, afterHoopEigen);
     cv2eigen(hoop_pos, hoop_posEigen);
 	
-	// currentstate, states to go through, hoop position
-    MatrixXd result = getFastestPath(initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);		// coordinates in camera frame
+    MatrixXd path = getFastestPath(currentStateEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen);		// coordinates in camera frame
     //cout << "Pathplanner executed succesfully" << endl;
-    eigen2cv(result, r);
+	
+	Mat r;
+    eigen2cv(path, r);
     r.copyTo(output);
 
 }
 
 
 
-
-// load cameraMatrix and distCoefficients from file
-static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients){
-    FileStorage fs(filename, FileStorage::READ);	//open file
-    if(!fs.isOpened()){		//return if not opened correctly
-        cout << "Could not load camera calibration file: " << filename << endl;
-		fs.release();
-        return false;
-    }
-	
-	OutputArray cameraMatrix, distCoefficients;
-    fs["camera_matrix"] >> cameraMatrix;
-    fs["distortion_coefficients"] >> distCoefficients;
-    fs.release();
-	
-    return true;
-}
-
-VideoCapture getCameraVar(parser){
-	// get camera
-
-    int cam = parser.get<int>("cam");				//camera
-    VideoCapture cap;								//image capture variable
-    cap.open(cam);									//link camera to capture
-	
-	return cap
-}
 
 
 // argument count, argument vector
