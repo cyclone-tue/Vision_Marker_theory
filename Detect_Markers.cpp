@@ -2,6 +2,7 @@
 
 VectorXd coef_vec2(6);
 VideoCapture cap;
+VideoWriter debugStream;
 Mat cameraMatrix, distCoef;
 Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
 
@@ -329,6 +330,9 @@ bool runFrame(bool visualize, OutputArray path) {
     if(visualize){
         imshow("out", imageCopy);
     }
+    Mat output;
+    resize(imageCopy, output, Size(640, 480));
+    debugStream.write(output);
     return foundMarker;
 }
 
@@ -356,8 +360,6 @@ int main(int argc, char* argv[]){
     }
 
     cap.release();
-    //server.stop();
-    server.release();
 
 }
 
@@ -388,6 +390,10 @@ void setupVariables(int camera, const char* calibrationFile){
     cout << "Opening camera" << endl;
     cap = VideoCapture();
     cap.open(camera);
+    debugStream.open("appsrc ! videoconvert ! x264enc noise-reduction=10000 tune=zerolatency byte-stream=true threads=4 ! mpegtsmux ! rtpmp2tpay ! udpsink host=localhost port=9999", 0, (double)30, Size(640, 480), true);
+    if (!debugStream.isOpened()){
+        cout << "Could not open debugstream." << endl;
+    }
     cout << "Reading camera parameters" << endl;
     cout << "Calibration file is" << filename << endl;
     if(!readCameraParameters(filename, cameraMatrix, distCoef)){
