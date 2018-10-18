@@ -134,7 +134,7 @@ The begin and end constraints are satisfied by this path.
 */
 MatrixXd getPath(double numOfStates, MatrixXd constraints, double time) {
 	
-    MatrixXd states(12,(int) numOfStates);			// state = [x,xd,xdd,xddd, y,yd, ... z,zd, ... ]
+    MatrixXd states(12,(int) numOfStates);			// state = [x;xd;xdd;xddd; y;yd; ... z;zd; ... ]
 
     for (int j = 0; j <= 2; j++) {			//iterate over parts(x, y, z) of states
         MatrixXd derMat(4,6);
@@ -147,6 +147,24 @@ MatrixXd getPath(double numOfStates, MatrixXd constraints, double time) {
 }
 
 
+
+MatrixXd posDerivativesToStates(MatrixXd posDerivatives, VectorXd yaw) {
+	// state = [x;xd;xdd;xddd; y;yd; ... z;zd; ... ]
+	
+	length = len(posDerivatives);
+	MatrixXd(12, length) states;
+	
+	states.block<1,length>(0,0) = posDerivatives.block<1,length>(0,0);		// set x
+	states.block<1,length>(1,0) = posDerivatives.block<1,length>(4,0);		// set y
+	states.block<1,length>(2,0) = posDerivatives.block<1,length>(8,0);		// set z 
+	
+	states.block<1,length>(3,0) = posDerivatives.block<1,length>(1,0);		// set Vx
+	states.block<1,length>(4,0) = posDerivatives.block<1,length>(5,0);		// set Vy
+	states.block<1,length>(5,0) = posDerivatives.block<1,length>(9,0);		// set Vz
+	
+	
+	
+}
 
 MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixXd stateAfterHoop, MatrixXd hoop_pos) {
 
@@ -176,14 +194,17 @@ MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixX
 			t_max = t_max*2;
 			trajPart = getPath(pointsPerTrajPart, constraints, t_max);
 			// yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
+			trajPartStateSpace = posDerivativesToStates(trajPart, yaw);
 		}
-		while(!hasValidThrusts(trajPart))
+		while(!hasValidThrusts(trajPartStateSpace))
 			
 		while(t_max - t_min > 0.1){
 			t = (t_max + t_min)/2;
 			trajPart = getPath(pointsPerTrajPart, constraints, t);
 			// yaw = yaw_math(p_before_hoop(1,1),p_before_hoop(1,2),final(1,1),final(1,2),yaw0,t); need the method
-			if(hasValidThrusts(trajPart)){
+			trajPartStateSpace = posDerivativesToStates(trajPart, yaw);
+			
+			if(hasValidThrusts(trajPartStateSpace)){
 				t_max = t;
 			} else{
 				t_min = t;
@@ -275,118 +296,13 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
 // argument count, argument vector
 int main(int argc, char* argv[]){
 	
-	//parser stuff
-    CommandLineParser parser = CommandLineParser(argc, argv, keys);
-    //parser.about("Run marker detection code.");
-    if(argc < 2){					//check number of arguments
-        parser.printMessage();		//print some standard information of parser (its arguments)
-        return 0;
-    }
 	
 	
-	VideoCapture cap = getCameraVar(parser)
+	
+	Mat path;
+    runPathPlanner(pos, rotMat, path);
 
-    
-    Mat cameraMatrix, distCoef;		// some matrices , distortion coefficients
-	String filename = parser.get<String>("cal");	//filename for calibration values
-	getCameraParameters(filename, cameraMatrix, distCoef); 
-	
-	Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);		//make dictionary for what??
-
-	
-	
-	
-	
-	
-
-    while(cap.grab()){
-        Mat image, imageCopy;
-		
-        cap.retrieve(image);
-        //image.copyTo(imageCopy);	//why the hell
-
-        vector<int> ids;						// ID's of detected markers
-        vector<vector<Point2f>> corners;		// corners of markers
-        aruco::detectMarkers(image, dictionary, corners, ids);		//write to corners, ids
-
-        //At least one marker detected
-        if(!ids.empty()){
-            aruco::drawDetectedMarkers(image, corners, ids);		//draw marker
-            vector<Vec3d> rvecs, tvecs;		// rotation and translation of marker in body frame
-            aruco::estimatePoseSingleMarkers(corners, markerSize, cameraMatrix, distCoef, rvecs, tvecs);
-			
-            for(int i=0; i<ids.size(); i++){
-                if(ids[i] == markerId){
                     
-					Mat rotMat;								// body to world frame
-                    Rodrigues(rvecs[i], rotMat);			// Calculate rotation matrix for marker
-
-                    Mat pos = rotMat.t()*Mat(tvecs[i]); 	// Calculate marker position in world space
-                    pos = pos + Mat(hoop_offset); 			// Add offset in world space to get center of hoop.
-                    
-
-                    Mat pixelsTranslated = rotMat * pos;	// what does this do? you rotate the marker position in world space with rotMat?
-                    Vec3d pixels;
-                    pixelsTranslated.copyTo(pixels);
-                    tvecs[i] = pixels;
-					
-                    double sy = sqrt(pow(rotMat.at<double>(0,0), 2) + pow(rotMat.at<double>(1,0), 2));		//what is sy? sin(theta)?
-                    bool singular = sy < 1e-6;
-					
-                    double rollTemp, pitchTemp, yawTemp;		//temp is what
-                    if(!singular){
-                        rollTemp = atan2(rotMat.at<double>(2,1), rotMat.at<double>(2,2));
-                        pitchTemp = atan2(-rotMat.at<double>(2,0), sy);
-                        yawTemp = atan2(rotMat.at<double>(1,0), rotMat.at<double>(0,0));
-                    }else{
-                        rollTemp = atan2(rotMat.at<double>(2,1), rotMat.at<double>(2,2));
-                        pitchTemp = 0;
-                        yawTemp = atan2(rotMat.at<double>(1,0), rotMat.at<double>(0,0));
-                    }
-
-                    double yaw = -pitchTemp;		//thats not nice
-                    double roll = -yawTemp;
-                    double pitch = M_PI - rollTemp;
-                    if(pitch > M_PI){
-                        pitch -= 2*M_PI;
-                    }
-
-                    double x = pos.at<double>(0,0);
-                    double y = pos.at<double>(1,0);
-                    double z = pos.at<double>(2,0);
-
-
-
-                    //cout << "x " << x << ", y : " << y << ", z :" << z <<  ", yaw: " << yaw/M_PI*180 << ", pitch: " << pitch/M_PI*180 << ", roll: " << roll/M_PI*180 << endl;
-                    aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvecs[i],tvecs[i], markerSize);
-                    Mat path;
-                    runPathPlanner(pos, rotMat, path);
-
-                    vector<Point3d> pathPoints;
-                    for(int i = 0; i < path.rows; i+=10){
-                        Mat row = path.row(i);
-                        pathPoints.push_back(Point3d(row.at<double>(0,0), row.at<double>(1,0), row.at<double>(2,0)));
-                    }
-                    //cout << "Created path points." << endl;
-                    vector<Point2d> imagePoints;
-                    projectPoints(pathPoints, Vec3d(0,0,0), Vec3d(0,0,0), cameraMatrix, distCoef, imagePoints);
-                    for (int j = 0; j < imagePoints.size() - 1; j++) {
-                        line(imageCopy, imagePoints[j], imagePoints[j + 1], Scalar(255/imagePoints.size() * j,0,255/imagePoints.size()*(imagePoints.size() - j)), 3);
-                    }
-                    //cout << "Drawn lines" << endl;
-                    //cout << path << endl;
-                }
-
-            }
-
-        }
-        imshow("out", imageCopy);
-        char key = (char) waitKey(1);
-        if (key == 27) break;
-
-    }
-
-    cap.release();
 
 }
 
