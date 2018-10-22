@@ -326,6 +326,7 @@ bool runFrame(bool visualize, OutputArray path) {
     }
     if(visualize){
         imshow("out", imageCopy);
+        waitKey(1);
     }
     return foundMarker;
 }
