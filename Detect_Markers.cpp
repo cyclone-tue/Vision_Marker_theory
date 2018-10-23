@@ -16,7 +16,7 @@ namespace {
     const double v_after = 0.1;
     const double d_before = 0.5;
     const double v_in = 0.1;
-    const Vec3d hoop_offset = Vec3d(0,-0.37,0);//Offset variable in world space from center of marker to center of hoop.
+    const Vec3d hoop_offset = Vec3d(0,0.37,0);//Offset variable in world space from center of marker to center of hoop.
 
 }
 
