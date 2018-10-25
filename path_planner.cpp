@@ -19,15 +19,12 @@ using namespace Eigen;
 VectorXd coef_vec2(6);
 
 namespace {
-    const char* keys =
-            "{cal |    | File to load calibration data from}"
-            "{cam | 0  | camera input to use}";
-    const double markerSize = 0.07; // Marker side length in meters
     const int markerId = 23;
     const double d_after = 1;
     const double v_after = 1;
     const double d_before = 2;
     const double v_in = 1;
+	
     const Vec3d hoop_offset = Vec3d(0,0,0);//Offset variable in world space from center of marker to center of hoop.
 }
 
@@ -50,13 +47,15 @@ MatrixXd getMatForDerToConstraints(double time){
 	
 	// constructing lower part of matrix
 	//time = 1;		// uncomment this line to see result of old version of code.
-	VectorXd powersOfTime(6);
-	powersOfTime << pow(time,5), pow(time,4), pow(time,3), pow(time,2), pow(time,1), 1;
-	DiagonalMatrix<double, 6> powersOfTimeDiag = powersOfTime.asDiagonal();
+	double t5 = pow(time,5);
+	double t4 = pow(time,4);
+	double t3 = pow(time,3);
+	double t2 = pow(time,2);
+	double t1 = pow(time,1);
 	
 	MatrixXd lowerPart(3, 6);
-	lowerPart << 1,1,1,1,1,1, 5,4,3,2,1,0, 20,12,6,2,0,0;
-	lowerPart = lowerPart*powersOfTimeDiag;
+	lowerPart << t5,t4,t3,t2,t1,1, 5*t4,4*t3,3*t2,2*t1,1,0, 20*t3,12*t2,6*t1,2,0,0;
+	//lowerPart << 1/120*t5,1/24*t4,1/6*t3,1/2*t2,t1,1, 1/24*t4,1/6*t3,1/2*t2,t1,1,0, 1/6*t3,1/2*t2,t1,1,0,0; 
 	
 	// constructing final matrix
 	MatrixXd mat(6,6);
@@ -87,6 +86,7 @@ MatrixXd constraintsToDerivatives(VectorXd constraints, double t) {
     mat_out << a(0),a(1),a(2),a(3),a(4),a(5),  0,5*a(0),4*a(1),3*a(2),2*a(3),a(4),  0,0,20*a(0),12*a(1),6*a(2),2*a(3),  0,0,0,60*a(0),24*a(1),6*a(2);
 	
     return mat_out;
+	// return a;
 }
 
 
@@ -149,7 +149,8 @@ MatrixXd getPath(double numOfStates, MatrixXd constraints, double time) {
 
 
 MatrixXd posDerivativesToStates(MatrixXd posDerivatives, VectorXd yaw) {
-	// state = [x;xd;xdd;xddd; y;yd; ... z;zd; ... ]
+	// state in posDerivatives = [x;xd;xdd;xddd; y;yd; ... z;zd; ... ]
+	// state in states = [x, y, z, Vx, Vy, Vz, phi, theta, psi, p, q, r]
 	
 	length = len(posDerivatives);
 	MatrixXd(12, length) states;
@@ -164,7 +165,13 @@ MatrixXd posDerivativesToStates(MatrixXd posDerivatives, VectorXd yaw) {
 	
 	
 	
+	
+	
+	return states;
 }
+
+
+
 
 MatrixXd getFastestPath(MatrixXd currentState, MatrixXd stateBeforeHoop, MatrixXd stateAfterHoop, MatrixXd hoop_pos) {
 
@@ -300,7 +307,7 @@ int main(int argc, char* argv[]){
 	
 	
 	Mat path;
-    runPathPlanner(pos, rotMat, path);
+    runPathPlanner(currentState, rotMat, path);
 
                     
 
