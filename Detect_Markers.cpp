@@ -1,9 +1,11 @@
 #include "DetectMarker.h"
+#include <ctime>
 
 VectorXd coef_vec2(6);
 VideoCapture cap;
 Mat cameraMatrix, distCoef;
 Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
+VideoWriter debugWriter;
 
 
 namespace {
@@ -328,6 +330,9 @@ bool runFrame(bool visualize, OutputArray path) {
         imshow("out", imageCopy);
         waitKey(1);
     }
+    if(debugWriter.isOpened()){
+        debugWriter.write(imageCopy);
+    }
     return foundMarker;
 }
 
@@ -395,5 +400,18 @@ void setupVariables(int camera, const char* calibrationFile){
     }
     namedWindow("out", WINDOW_KEEPRATIO);
     resizeWindow("out", 300,300);
+
+    Mat testFrame;
+    cap >> testFrame;
+
+    time_t now = time(0);
+    tm* localTime = localtime(&now);
+    int codec = VideoWriter::fourcc('H','2','6','4');
+    String outFilename = "Field_test-"  + to_string(localTime->tm_mday) + "-" + to_string(localTime->tm_mon) + "-" + to_string(localTime->tm_year) + "_" + to_string(localTime->tm_hour) + ":" + to_string(localTime->tm_min) + ":" + to_string(localTime->tm_sec) + ".mp4";
+    cout << "Writing to video file: " << outFilename.c_str() << endl;
+    debugWriter = VideoWriter(outFilename.c_str(), codec, 25.0, Size(testFrame.cols, testFrame.rows), true);
+    if(!debugWriter.isOpened()){
+        cout << "Could not open video writer!" << endl;
+    }
 }
 
