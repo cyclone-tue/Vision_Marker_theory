@@ -406,7 +406,11 @@ void setupVariables(int camera, const char* calibrationFile){
     time_t now = time(0);
     tm* localTime = localtime(&now);
     int codec = VideoWriter::fourcc('H','2','6','4');
-    String outFilename = "Field_test-"  + to_string(localTime->tm_mday) + "-" + to_string(localTime->tm_mon) + "-" + to_string(localTime->tm_year) + "_" + to_string(localTime->tm_hour) + ":" + to_string(localTime->tm_min) + ":" + to_string(localTime->tm_sec) + ".mp4";
+    ostringstream converter;
+    converter << "Field_test-" << localTime->tm_mday << "-" << localTime->tm_mon << "-" << localTime->tm_year << "_" << localTime->tm_hour << ":" << localTime->tm_min << ":" << localTime->tm_sec << ".mp4";
+    String outFilename;
+    outFilename = converter.str();
+    //String outFilename = "Field_test-"  + to_string(localTime->tm_mday) + "-" + to_string(localTime->tm_mon) + "-" + to_string(localTime->tm_year) + "_" + to_string(localTime->tm_hour) + ":" + to_string(localTime->tm_min) + ":" + to_string(localTime->tm_sec) + ".mp4";
     cout << "Writing to video file: " << outFilename.c_str() << endl;
     debugWriter = VideoWriter(outFilename.c_str(), codec, 25.0, Size(testFrame.cols, testFrame.rows), true);
     if(!debugWriter.isOpened()){
