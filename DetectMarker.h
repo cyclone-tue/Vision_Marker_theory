@@ -30,5 +30,6 @@ bool runFrame(bool visualize, OutputArray path);
 extern "C" {
     double* output_to_py(bool* foundPath, bool visualize);
     void setupVariables(int camera, const char* calibrationFile);
+    void cleanup();
 }
 #endif //MARKER_VISION_DETECTMARKER_H

@@ -359,8 +359,7 @@ int main(int argc, char* argv[]){
         if (key == 27) break;
     }
 
-    cap.release();
-
+    cleanup();
 }
 
 double* MatrixToArray(MatrixXd m) {
@@ -413,5 +412,11 @@ void setupVariables(int camera, const char* calibrationFile){
     if(!debugWriter.isOpened()){
         cout << "Could not open video writer!" << endl;
     }
+}
+
+void cleanup(){
+    cap.release();
+
+    debugWriter.release();
 }
 

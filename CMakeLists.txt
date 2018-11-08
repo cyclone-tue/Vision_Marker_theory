@@ -4,6 +4,7 @@ project(Marker_Vision)
 set(CMAKE_MODULE_PATH /usr/local/lib/cmake)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 include_directories(/usr/local/lib)
+set(CMAKE_CXX_STANDARD 11)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
