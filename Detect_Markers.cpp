@@ -328,7 +328,6 @@ bool runFrame(bool visualize, OutputArray path) {
     }
     if(visualize){
         imshow("out", imageCopy);
-        waitKey(1);
     }
     if(debugWriter.isOpened()){
         debugWriter.write(imageCopy);
@@ -375,6 +374,7 @@ double* output_to_py(bool* foundPath, bool visualize){
     Mat path;
     MatrixXd pathEigen;
     *foundPath = runFrame(visualize, path);
+    if(visualize) waitKey(1);
     if(*foundPath){
         path = path.t();
     } else{
