@@ -9,6 +9,7 @@
 #include <opencv2/core/eigen.hpp>
 #include "opencv2/aruco.hpp"
 #include "opencv2/highgui.hpp"
+#include "CircleBoard.h"
 
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
