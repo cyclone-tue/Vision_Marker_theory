@@ -185,7 +185,7 @@ MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final) {
 
 
 void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray output){
-    Mat init = Mat::zeros(3, 1, CV_64FC1);
+    Mat init = Mat::zeros(1, 3, CV_64FC1);
     Mat R = Mat::zeros(3, 3, CV_64FC1);
     Mat dist_corr_in = Mat::zeros(3, 1, CV_64FC1);
     Mat vel_corr_in = Mat::zeros(3, 1, CV_64FC1);
@@ -196,15 +196,18 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     Mat entryPointData = Mat::zeros(3,2, CV_64FC1);//Two columns. One for position, one for speed.
     Mat exitPointData = Mat::zeros(3,2, CV_64FC1);//Two columns. One for position, one for speed.
     Mat hoop_pos = Mat::zeros(3,2, CV_64FC1);
-    Mat hoop_pos_data = hoop_pos(Rect(Point2f(0,0), Size(1,3)));//Mat::zeros uses row, cols notation. Size uses width, height notation.
+    //Mat hoop_pos_data = hoop_pos(Rect(Point2f(0,0), Size(1,3)));//Mat::zeros uses row, cols notation. Size uses width, height notation.
     //cout << "Hoop_ps_data: " << hoop_pos_data << endl;
-    hoopTransVec.copyTo(hoop_pos_data);
-    //cout<< "HoopPos: " << hoop_pos << endl;
+    hoopTransVec.copyTo(hoop_pos.col(0));
+    cout<< "HoopPos: " << hoop_pos << endl;
 
     entryPointData.at<double>(2,0) = d_before;
     entryPointData.at<double>(2,1) = -v_in;
     exitPointData.at<double>(2,0) = -d_after;
     exitPointData.at<double>(2,1) = -v_after;
+
+    cout << "Entrypoint data: " << entryPointData << endl;
+    cout << "Exit point data: " << exitPointData << endl;
 
     Mat entryCorrection = R * entryPointData;
     Mat exitCorrection = R * exitPointData;
@@ -213,14 +216,19 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     beforeHoop = beforeHoop.t();
 
     Mat afterData = hoop_pos + exitCorrection;
-    Mat afterHoop = Mat::zeros(3,3,CV_64FC1);
-    Mat afterHoop_data = afterHoop(Rect(Point2f(0,0), Size(2,3)));
-    afterData.copyTo(afterHoop_data);
+    Mat afterHoop;
+    hconcat(afterData, Mat::zeros(3,1, CV_64FC1), afterHoop);
+    //Mat afterHoop = Mat::zeros(3,3,CV_64FC1);
+    //Mat afterHoop_data = afterHoop(Rect(Point2f(0,0), Size(3,2)));
+    //afterData.copyTo(afterHoop_data);
     afterHoop = afterHoop.t();
 
     //cout << "Initialized pathplanner variables" << endl;
 
-    //cout << "Init: " << init << endl << "beforeHoop: " << beforeHoop << endl << "afterHoop: " << afterHoop << endl;// <<  "hoop_pos: " << hoop_pos << endl;
+    //cout << "before hoop point: " << beforeHoop << endl;
+    //cout << "after hoop point: " << afterData << endl;
+
+    cout << "Init: " << init << endl << "beforeHoop: " << beforeHoop << endl << "afterHoop: " << afterHoop << endl;// <<  "hoop_pos: " << hoop_pos << endl;
 
     Mat r;
     MatrixXd initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen;
@@ -353,7 +361,14 @@ int main(int argc, char* argv[]){
 
     while(true){
         Mat path;
-        runFrame(true, path);
+        if(runFrame(true, path)){
+            for(int j = 0; j < 100; j+=10){
+                //cout << "Printing points from " << j << " to " << (j + 9) << endl;
+                for(int i = j; i < j + 10; i++){
+                    //cout << "x: " << path.at<double>(0,i) << ", y: " << path.at<double>(4,i) << ", z: " << path.at<double>(8,i) << endl;
+                }
+            }
+        }
         char key = (char) waitKey(1);
         if (key == 27) break;
     }
