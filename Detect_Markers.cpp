@@ -235,6 +235,10 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     cv2eigen(init, initEigen);
     cv2eigen(beforeHoop, beforeHoopEigen);
     cv2eigen(afterHoop, afterHoopEigen);
+
+    cout << "Pathplanner starting point: " << initEigen << endl;
+    cout << "Pathplanner before point: " << beforeHoopEigen << endl;
+    cout << "Pathplanner after point: " << afterHoopEigen << endl;
     MatrixXd result = Dimention3(initEigen, beforeHoopEigen, afterHoopEigen);
     //cout << "Pathplanner executed succesfully" << endl;
     eigen2cv(result, r);
@@ -391,6 +395,15 @@ double* output_to_py(bool* foundPath, bool visualize){
     *foundPath = runFrame(visualize, path);
     if(visualize) waitKey(1);
     if(*foundPath){
+        //cout << "rows: " << path.rows << ", cols: " << path.cols << endl;
+        for(int j = 0; j < 100; j+=10){
+            cout << "Printing points from " << j << " to " << (j + 9) << endl;
+            for(int i = j; i < j + 10; i++){
+                cout << "x: " << path.at<double>(0,i) << ", y: " << path.at<double>(4,i) << ", z: " << path.at<double>(8,i) << endl;
+            }
+        }
+
+
         path = path.t();
     } else{
         path = Mat::zeros(100, 12, CV_64FC1);
