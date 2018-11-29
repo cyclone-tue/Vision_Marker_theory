@@ -1,11 +1,12 @@
 #include "DetectMarker.h"
+#include <fstream>
+#include <string>
 
 VectorXd coef_vec2(6);
 VideoCapture cap;
 VideoWriter debugStream;
 Mat cameraMatrix, distCoef;
 Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
-
 
 namespace {
     const char* keys =
@@ -353,8 +354,10 @@ int main(int argc, char* argv[]){
     setupVariables(cam, filename.c_str());
 
     while(true){
-        Mat path;
+        Mat path,Frame;
         runFrame(true, path);
+        //receiver >> Frame;
+        //imshow("Jemoeder",Frame);
         char key = (char) waitKey(1);
         if (key == 27) break;
     }
@@ -390,10 +393,28 @@ void setupVariables(int camera, const char* calibrationFile){
     cout << "Opening camera" << endl;
     cap = VideoCapture();
     cap.open(camera);
-    debugStream.open("appsrc ! videoconvert ! x264enc noise-reduction=10000 tune=zerolatency byte-stream=true threads=4 ! mpegtsmux ! rtpmp2tpay ! udpsink host=localhost port=9999", 0, (double)30, Size(640, 480), true);
+
+    //Read the client ip addresses for the debugstream.
+    String clientsfile = "clients.txt";
+    std::ifstream infile(clientsfile);
+    std::string line;
+    String ipaddresses;
+
+    while (std::getline(infile,line)) {
+        ipaddresses = ipaddresses + line;
+    }
+
+    debugStream.open("appsrc use-damage=false ! videoconvert ! videoscale ! vp8enc ! rtpvp8pay ! multiudpsink clients="+ipaddresses, 0, (double)30, Size(640, 480), true);
+    //old debugstream via vlc.
+    //debugStream.open("appsrc ! videoconvert ! x264enc noise-reduction=10000 tune=zerolatency byte-stream=true threads=4 ! mpegtsmux ! rtpmp2tpay ! udpsink host=localhost port=9999",0,(double)30,Size(640,480),true);
+    //test streams that did not work (I keep them if necessary later on)
+    //debugStream.open("appsrc use-damage=false ! videoconvert ! videoscale ! avenc_mpeg4 ! rtpmp4vpay config-interval=40 ! udpsink host=localhost port=9999", 0, (double)30, Size(640, 480), true);
+    //receiver.open("udpsrc port=9999 ! application/x-rtp, payload=96 ! rtph264depay ! avdec_h264 ! ximagesink sync=false");
+
     if (!debugStream.isOpened()){
         cout << "Could not open debugstream." << endl;
     }
+
     cout << "Reading camera parameters" << endl;
     cout << "Calibration file is" << filename << endl;
     if(!readCameraParameters(filename, cameraMatrix, distCoef)){
