@@ -391,9 +391,12 @@ double* output_to_py(bool* foundPath, bool visualize){
 
 void setupVariables(int camera, const char* calibrationFile){
     String filename = String(calibrationFile);
-    cout << "Opening camera" << endl;
+    cout << "Opening camera " << camera << endl;
     cap = VideoCapture();
     cap.open(camera);
+
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT);
 
     //debugStream.open("appsrc use-damage=false ! videoconvert ! videoscale ! vp8enc ! rtpvp8pay ! udpsink host=localhost port=9999", 0, (double)30, Size(640, 480), true);
 
