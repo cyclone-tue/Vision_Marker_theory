@@ -10,6 +10,9 @@
 #include "opencv2/aruco.hpp"
 #include "opencv2/highgui.hpp"
 
+#define CAMERA_WIDTH 640
+#define CAMERA_HEIGHT 480
+
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
 using Eigen::VectorXd;

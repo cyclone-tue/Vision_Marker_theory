@@ -199,15 +199,15 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     //Mat hoop_pos_data = hoop_pos(Rect(Point2f(0,0), Size(1,3)));//Mat::zeros uses row, cols notation. Size uses width, height notation.
     //cout << "Hoop_ps_data: " << hoop_pos_data << endl;
     hoopTransVec.copyTo(hoop_pos.col(0));
-    cout<< "HoopPos: " << hoop_pos << endl;
+    //cout<< "HoopPos: " << hoop_pos << endl;
 
     entryPointData.at<double>(2,0) = d_before;
     entryPointData.at<double>(2,1) = -v_in;
     exitPointData.at<double>(2,0) = -d_after;
     exitPointData.at<double>(2,1) = -v_after;
 
-    cout << "Entrypoint data: " << entryPointData << endl;
-    cout << "Exit point data: " << exitPointData << endl;
+    //cout << "Entrypoint data: " << entryPointData << endl;
+    //cout << "Exit point data: " << exitPointData << endl;
 
     Mat entryCorrection = R * entryPointData;
     Mat exitCorrection = R * exitPointData;
@@ -228,7 +228,7 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     //cout << "before hoop point: " << beforeHoop << endl;
     //cout << "after hoop point: " << afterData << endl;
 
-    cout << "Init: " << init << endl << "beforeHoop: " << beforeHoop << endl << "afterHoop: " << afterHoop << endl;// <<  "hoop_pos: " << hoop_pos << endl;
+    // cout << "Init: " << init << endl << "beforeHoop: " << beforeHoop << endl << "afterHoop: " << afterHoop << endl;// <<  "hoop_pos: " << hoop_pos << endl;
 
     Mat r;
     MatrixXd initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen;
@@ -363,9 +363,9 @@ int main(int argc, char* argv[]){
         Mat path;
         if(runFrame(true, path)){
             for(int j = 0; j < 100; j+=10){
-                //cout << "Printing points from " << j << " to " << (j + 9) << endl;
+                cout << "Printing points from " << j << " to " << (j + 9) << endl;
                 for(int i = j; i < j + 10; i++){
-                    //cout << "x: " << path.at<double>(0,i) << ", y: " << path.at<double>(4,i) << ", z: " << path.at<double>(8,i) << endl;
+                    cout << "x: " << path.at<double>(0,i) << ", y: " << path.at<double>(4,i) << ", z: " << path.at<double>(8,i) << endl;
                 }
             }
         }
@@ -404,6 +404,10 @@ void setupVariables(int camera, const char* calibrationFile){
     cout << "Opening camera" << endl;
     cap = VideoCapture();
     cap.open(camera);
+
+    //cap.set(CV_CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT);
+    //cap.set(CV_CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH);
+
     cout << "Reading camera parameters" << endl;
     cout << "Calibration file is" << filename << endl;
     if(!readCameraParameters(filename, cameraMatrix, distCoef)){
