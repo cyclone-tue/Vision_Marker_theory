@@ -71,7 +71,9 @@ const char* keys  =
         "{zt       | false | Assume zero tangential distortion }"
         "{a        |       | Fix aspect ratio (fx/fy) to this value }"
         "{pc       | false | Fix the principal point at the center }"
-        "{sc       | false | Show detected chessboard corners after calibration }";
+        "{sc       | false | Show detected chessboard corners after calibration }"
+        "{cw       |       | Fix camera width to certain value}"
+        "{ch       |       | Fix camera height to certain value}";
 }
 
 /**
@@ -205,6 +207,8 @@ int main(int argc, char *argv[]) {
     } else {
         inputVideo.open(camId);
         waitTime = 10;
+        inputVideo.set(CV_CAP_PROP_FRAME_WIDTH, parser.get<int>("cw"));
+        inputVideo.set(CV_CAP_PROP_FRAME_HEIGHT, parser.get<int>("ch"));
     }
 
     Ptr<aruco::Dictionary> dictionary =
