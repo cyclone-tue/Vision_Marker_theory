@@ -187,7 +187,7 @@ MatrixXd Dimention3(MatrixXd init, MatrixXd p_before_hoop, MatrixXd final) {
 
 
 void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray output){
-    Mat init = Mat::zeros(3, 1, CV_64FC1);
+    Mat init = Mat::zeros(1, 3, CV_64FC1);
     Mat R = Mat::zeros(3, 3, CV_64FC1);
     Mat dist_corr_in = Mat::zeros(3, 1, CV_64FC1);
     Mat vel_corr_in = Mat::zeros(3, 1, CV_64FC1);
@@ -262,7 +262,6 @@ bool runFrame(bool visualize, OutputArray path) {
             }
 
             //-----------------PATHPLANNING---------------------
-            /*
             Mat rotMat;
 
             Rodrigues(rvec, rotMat);//Calculate rotation matrix for marker
@@ -328,7 +327,6 @@ bool runFrame(bool visualize, OutputArray path) {
             pathData.copyTo(path);
             //cout << "Drawn lines" << endl;
             //cout << path << endl;
-            /**/
         }
     }
 
@@ -411,4 +409,3 @@ void setupVariables(int camera, const char* calibrationFile){
     namedWindow("out", WINDOW_KEEPRATIO);
     resizeWindow("out", 300,300);
 }
-
