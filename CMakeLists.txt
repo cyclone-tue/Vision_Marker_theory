@@ -4,6 +4,7 @@ project(Marker_Vision)
 set(CMAKE_MODULE_PATH /usr/local/lib/cmake)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 include_directories(/usr/local/lib)
+set(CMAKE_CXX_STANDARD 11)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -24,14 +25,16 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 
 add_executable(GenerateMarker Generate_Markers.cpp)
-add_executable(DetectMarker Detect_Markers.cpp)
+add_executable(DetectMarker Detect_Markers.cpp CircleBoard.cpp)
 add_executable(CalibrateCamera calibrate_camera_charuco.cpp)
 add_executable(CreateCalibration create_calibration.cpp)
-add_library(CycloneVision MODULE Detect_Markers.cpp)
+add_library(CycloneVision MODULE Detect_Markers.cpp CircleBoard.cpp)
+add_executable(WebcamTest webcam_test.cpp)
 
 target_link_libraries(GenerateMarker ${OpenCV_LIBS})
 target_link_libraries(DetectMarker ${OpenCV_LIBS})
 target_link_libraries(CalibrateCamera ${OpenCV_LIBS})
 target_link_libraries(CreateCalibration ${OpenCV_LIBS})
 target_link_libraries(CycloneVision ${OpenCV_LIBS})
+target_link_libraries(WebcamTest ${OpenCV_LIBS})
 add_dependencies(CycloneVision opencv)
