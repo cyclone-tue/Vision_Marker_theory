@@ -1,10 +1,12 @@
 #include "DetectMarker.h"
+#include <ctime>
 
 VectorXd coef_vec2(6);
 VideoCapture cap;
 //Videowriter debugStream;
 Mat cameraMatrix, distCoef;
 Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_ARUCO_ORIGINAL);
+VideoWriter debugWriter;
 
 
 namespace {
@@ -198,15 +200,18 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     Mat entryPointData = Mat::zeros(3,2, CV_64FC1);//Two columns. One for position, one for speed.
     Mat exitPointData = Mat::zeros(3,2, CV_64FC1);//Two columns. One for position, one for speed.
     Mat hoop_pos = Mat::zeros(3,2, CV_64FC1);
-    Mat hoop_pos_data = hoop_pos(Rect(Point2f(0,0), Size(1,3)));//Mat::zeros uses row, cols notation. Size uses width, height notation.
+    //Mat hoop_pos_data = hoop_pos(Rect(Point2f(0,0), Size(1,3)));//Mat::zeros uses row, cols notation. Size uses width, height notation.
     //cout << "Hoop_ps_data: " << hoop_pos_data << endl;
-    hoopTransVec.copyTo(hoop_pos_data);
+    hoopTransVec.copyTo(hoop_pos.col(0));
     //cout<< "HoopPos: " << hoop_pos << endl;
 
     entryPointData.at<double>(2,0) = d_before;
     entryPointData.at<double>(2,1) = -v_in;
     exitPointData.at<double>(2,0) = -d_after;
     exitPointData.at<double>(2,1) = -v_after;
+
+    //cout << "Entrypoint data: " << entryPointData << endl;
+    //cout << "Exit point data: " << exitPointData << endl;
 
     Mat entryCorrection = R * entryPointData;
     Mat exitCorrection = R * exitPointData;
@@ -215,20 +220,29 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     beforeHoop = beforeHoop.t();
 
     Mat afterData = hoop_pos + exitCorrection;
-    Mat afterHoop = Mat::zeros(3,3,CV_64FC1);
-    Mat afterHoop_data = afterHoop(Rect(Point2f(0,0), Size(2,3)));
-    afterData.copyTo(afterHoop_data);
+    Mat afterHoop;
+    hconcat(afterData, Mat::zeros(3,1, CV_64FC1), afterHoop);
+    //Mat afterHoop = Mat::zeros(3,3,CV_64FC1);
+    //Mat afterHoop_data = afterHoop(Rect(Point2f(0,0), Size(3,2)));
+    //afterData.copyTo(afterHoop_data);
     afterHoop = afterHoop.t();
 
     //cout << "Initialized pathplanner variables" << endl;
 
-    //cout << "Init: " << init << endl << "beforeHoop: " << beforeHoop << endl << "afterHoop: " << afterHoop << endl;// <<  "hoop_pos: " << hoop_pos << endl;
+    //cout << "before hoop point: " << beforeHoop << endl;
+    //cout << "after hoop point: " << afterData << endl;
+
+    // cout << "Init: " << init << endl << "beforeHoop: " << beforeHoop << endl << "afterHoop: " << afterHoop << endl;// <<  "hoop_pos: " << hoop_pos << endl;
 
     Mat r;
     MatrixXd initEigen, beforeHoopEigen, afterHoopEigen, hoop_posEigen;
     cv2eigen(init, initEigen);
     cv2eigen(beforeHoop, beforeHoopEigen);
     cv2eigen(afterHoop, afterHoopEigen);
+
+    cout << "Pathplanner starting point: " << initEigen << endl;
+    cout << "Pathplanner before point: " << beforeHoopEigen << endl;
+    cout << "Pathplanner after point: " << afterHoopEigen << endl;
     MatrixXd result = Dimention3(initEigen, beforeHoopEigen, afterHoopEigen);
     //cout << "Pathplanner executed succesfully" << endl;
     eigen2cv(result, r);
@@ -333,6 +347,9 @@ bool runFrame(bool visualize, OutputArray path) {
     if(visualize){
         imshow("out", imageCopy);
     }
+    if(debugWriter.isOpened()){
+        debugWriter.write(imageCopy);
+    }
     return foundMarker;
 }
 
@@ -353,12 +370,19 @@ int main(int argc, char* argv[]){
 
     while(true){
         Mat path;
-        runFrame(true, path);
+        if(runFrame(true, path)){
+            for(int j = 0; j < 100; j+=10){
+                cout << "Printing points from " << j << " to " << (j + 9) << endl;
+                for(int i = j; i < j + 10; i++){
+                    cout << "x: " << path.at<double>(0,i) << ", y: " << path.at<double>(4,i) << ", z: " << path.at<double>(8,i) << endl;
+                }
+            }
+        }
         char key = (char) waitKey(1);
         if (key == 27) break;
     }
 
-    cap.release();
+    cleanup();
 }
 
 double* MatrixToArray(MatrixXd m) {
@@ -374,10 +398,19 @@ double* output_to_py(bool* foundPath, bool visualize){
     Mat path;
     MatrixXd pathEigen;
     *foundPath = runFrame(visualize, path);
-    if(visualize){
-        waitKey(1);
-    }
+  
+    if(visualize) waitKey(1);
+  
     if(*foundPath){
+        //cout << "rows: " << path.rows << ", cols: " << path.cols << endl;
+        for(int j = 0; j < 100; j+=10){
+            cout << "Printing points from " << j << " to " << (j + 9) << endl;
+            for(int i = j; i < j + 10; i++){
+                cout << "x: " << path.at<double>(0,i) << ", y: " << path.at<double>(4,i) << ", z: " << path.at<double>(8,i) << endl;
+            }
+        }
+
+
         path = path.t();
     } else{
         path = Mat::zeros(100, 12, CV_64FC1);
@@ -408,4 +441,27 @@ void setupVariables(int camera, const char* calibrationFile){
     }
     namedWindow("out", WINDOW_KEEPRATIO);
     resizeWindow("out", 300,300);
+
+    Mat testFrame;
+    cap >> testFrame;
+
+    time_t now = time(0);
+    tm* localTime = localtime(&now);
+    int codec = VideoWriter::fourcc('H','2','6','4');
+    ostringstream converter;
+    converter << "Field_test-" << localTime->tm_mday << "-" << localTime->tm_mon << "-" << localTime->tm_year << "_" << localTime->tm_hour << ":" << localTime->tm_min << ":" << localTime->tm_sec << ".mp4";
+    String outFilename;
+    outFilename = converter.str();
+    //String outFilename = "Field_test-"  + to_string(localTime->tm_mday) + "-" + to_string(localTime->tm_mon) + "-" + to_string(localTime->tm_year) + "_" + to_string(localTime->tm_hour) + ":" + to_string(localTime->tm_min) + ":" + to_string(localTime->tm_sec) + ".mp4";
+    cout << "Writing to video file: " << outFilename.c_str() << endl;
+    debugWriter = VideoWriter(outFilename.c_str(), codec, 25.0, Size(testFrame.cols, testFrame.rows), true);
+    if(!debugWriter.isOpened()){
+        cout << "Could not open video writer!" << endl;
+    }
+}
+
+void cleanup(){
+    cap.release();
+
+    debugWriter.release();
 }
