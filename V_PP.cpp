@@ -27,7 +27,7 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
 
 
 void setup(){
-    vision::setupVariables(0, "../laptop_calibration.txt");
+    vision::setupVariables(1, "../laptop_calibration.txt");
 }
 
 

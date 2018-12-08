@@ -139,24 +139,20 @@ double* vision::MatrixToArray(MatrixXd m) {
 void vision::setupVariables(int camera, const char* calibrationFile){
     String filename = String(calibrationFile);
     cout << "Opening camera" << endl;
-    //cap.set(cv::CAP_PROP_FRAME_WIDTH,4);
-    //cap.set(cv::CAP_PROP_FRAME_HEIGHT,8);
-
+    
     cap = VideoCapture();
 
     //cap.set(cv::CAP_PROP_FPS, 1);;
     cap.open(camera);
     if (!cap.isOpened())  // check if succeeded to connect to the camera
         CV_Assert("Cam open failed");
-    cout << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << endl;
-    cout << cap.get(cv::CAP_PROP_FPS) << endl;
+
     //cap.set(CV_CAP_PROP_FRAME_WIDTH,150);
     //cap.set(CV_CAP_PROP_FRAME_HEIGHT,320);
     //cap.set(CV_CAP_PROP_FPS, 15);
-    cout << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << endl;
-    cout << cap.get(cv::CAP_PROP_FRAME_WIDTH) << endl;
-    cout << cap.get(cv::CAP_PROP_FPS) << endl;
-    //cap.set(cv::CAP_PROP_FPS, 1);
+    //cout << cap.get(cv::CAP_PROP_FRAME_HEIGHT) << endl;
+    //cout << cap.get(cv::CAP_PROP_FRAME_WIDTH) << endl;
+    //cout << cap.get(cv::CAP_PROP_FPS) << endl;
 
     cout << "Reading camera parameters" << endl;
     cout << "Calibration file is" << filename << endl;
