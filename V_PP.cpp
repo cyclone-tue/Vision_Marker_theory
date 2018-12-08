@@ -1,44 +1,37 @@
 
-#include "Vision/vision.h"
-#include "Path_Planning/path_planner.h"
 
-#include <iostream>
-#include <cmath>
-#include <math.h>
-#include <Eigen/Dense>
-
-//PATH_PLANNER()
-//VISION()
-
-using Eigen::MatrixXd;
-using Eigen::Matrix3d;
-using Eigen::VectorXd;
-using Eigen::DiagonalMatrix;
-
-using namespace std;
-using namespace Eigen;
-
-const double g = 9.81;
+#include "V_PP.h"
 
 
-bool runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd path, VectorXd timeDiffs, MatrixXd torques){
-    bool foundPath;
+int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd path, VectorXd timeDiffs, MatrixXd torques){
+    cout << "run frame" << endl;
+    bool foundPath = false;
 
-    Vector3d hoopTransVec;
-    Matrix3d hoopRotMat;
+    Vector3d *hoopTransVec;
+    Matrix3d *hoopRotMat;
 
+    cout << "    run vision" << endl;
     bool foundHoop = vision::run(hoopTransVec, hoopRotMat);
-    if(foundHoop == true){
-        foundPath = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
-    }
+    cout << "    vision done" << endl;
 
+
+
+    if(foundHoop == true){
+        foundPath = path_planner::run(currentState, currentTorque, *hoopTransVec, *hoopRotMat, path, timeDiffs, torques);
+    }
+    else{
+        cout << "    no hoop was found" << endl;
+    }
     return foundPath;
 }
 
 
-void setup(){}
+void setup(){
+    vision::setupVariables(0, "../laptop_calibration.txt");
+}
 
-double* output_to_py(VectorXd currentState, VectorXd currentTorque, bool* pathLength, bool visualize){
+
+double* output_to_py(VectorXd currentState, VectorXd currentTorque, int* pathLength, bool visualize){
     double* db_p;  // stands for ...
     MatrixXd path;
     VectorXd timeDiffs;
@@ -49,7 +42,7 @@ double* output_to_py(VectorXd currentState, VectorXd currentTorque, bool* pathLe
     MatrixXd outputInfo(*pathLength, 12+1+4);
     outputInfo << path, 0, timeDiffs, torques;
 
-    // copy path to output array
+    //copy path to output array
     double db_array[*pathLength][12 + 1 + 4];
     Map<MatrixXd>(&db_array[0][0], path.rows(), path.cols()) = outputInfo;
     db_p = &db_array[0][0];
@@ -57,19 +50,24 @@ double* output_to_py(VectorXd currentState, VectorXd currentTorque, bool* pathLe
     return db_p;
 }
 
+
 int main(){
 
-    vision::setupVariables(0, "Vision/drone_calibration.txt");
+    setup();
+    cout << "setup done" << endl;
 
     VectorXd currentState(12);
     VectorXd currentTorque(4);
-    bool* pathLength;
-    bool visualize;
+    int* pathLength = new int(1);
+    bool visualize = false;
     currentState << 0,0,0, 0,0,0, 0,0,0, 0,0,0;
     currentTorque << 0,0,0,0;
 
     double *db_p;
-    db_p = output_to_py(currentState, currentTorque, pathLength, visualize);
+    //for(int i = 0; i<=1000; i++) {
+    while(true){
+        db_p = output_to_py(currentState, currentTorque, pathLength, visualize);
+    }
 
     return 0;
 }
