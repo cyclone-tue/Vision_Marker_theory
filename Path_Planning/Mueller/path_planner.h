@@ -1,0 +1,8 @@
+//
+// Created by arnoud on 11/22/18.
+//
+
+#ifndef MARKER_VISION_PATH_PLANNER_H
+#define MARKER_VISION_PATH_PLANNER_H
+
+#endif //MARKER_VISION_PATH_PLANNER_H

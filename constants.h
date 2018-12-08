@@ -1,0 +1,8 @@
+//
+// Created by arnoud on 11/29/18.
+//
+
+#ifndef MARKER_VISION_CONSTANTS_H
+#define MARKER_VISION_CONSTANTS_H
+
+#endif //MARKER_VISION_CONSTANTS_H

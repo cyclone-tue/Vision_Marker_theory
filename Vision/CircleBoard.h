@@ -1,0 +1,8 @@
+//
+// Created by arnoud on 12/6/18.
+//
+
+#ifndef MARKER_VISION_CIRCLEBOARD_H
+#define MARKER_VISION_CIRCLEBOARD_H
+
+#endif //MARKER_VISION_CIRCLEBOARD_H
