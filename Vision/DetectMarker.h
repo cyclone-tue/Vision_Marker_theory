@@ -26,13 +26,14 @@ using namespace Eigen;
 
 class vision {
 public:
-    static bool run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize);
+    static bool run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize);
     static void setupVariables(int camera, const char *calibrationFile);
     static void cleanup();
     static void projectPointsOntoCam(vector<Point3d> cvPoints, vector<Point2d>& imagePoints);
     static Mat debugFrame;  // for visualization.
 private:
     static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
+    static Matrix3d anglesToRotMat(double roll, double pitch, double yaw);
 };
 
 

@@ -62,7 +62,7 @@ bool vision::readCameraParameters(String filename, OutputArray cameraMat, Output
 }
 
 
-bool vision::run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize) {        // visualize should be removed in future version.
+bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize) {        // visualize should be removed in future version.
 
     bool foundMarker = false;
     Mat image, imageCopy;
@@ -84,20 +84,46 @@ bool vision::run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize) {
         aruco::drawDetectedMarkers(imageCopy, corners, ids);
         Vec3d rvec, tvec;
 
-        int valid = aruco::estimatePoseBoard(corners, ids, board, cameraMatrix, distCoef, rvec, tvec);
+        // tvec is given in the following frame: (I call this frame the oddCam frame, because it is strange)
+        // positive z is in the direction of sight.
+        // the origin of the frame is the camera.
+        // tvec points to the center of the hoop.
+        // positive x direction is to the right(relative to sight).
+        // positive y direction is down(relative to sight).
+        // this frame is thus right handed.
+
+        int valid = aruco::estimatePoseBoard(corners, ids, board, cameraMatrix, distCoef, rvec, tvec);  // get rvec and tvec in camera frame.
 
         // if at least one board marker detected
         if(valid > 0) {
             foundMarker = true;
 
-            if (visualize) {
-                aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvec, tvec, 0.1);
-            }
+            aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvec, tvec, 0.1);
 
 
             Mat rotMat;
-            Rodrigues(rvec, rotMat);            //Calculate rotation matrix for marker
-            Mat pos = rotMat.t() * Mat(tvec);   //Calculate marker position in world space
+            Rodrigues(rvec, rotMat);            //Calculate rotation matrix from oddCam frame into board frame.
+            rotMat = rotMat.t();                //Calculate rotation matrix from camera frame into board frame.
+
+            Vector3d hoopPos_oddCam, hoopPos_camera;        // calculate the hoop position in camera frame
+            cv2eigen(tvec, hoopPos_oddCam);
+            hoopPos_camera(0) = hoopPos_oddCam(2);
+            hoopPos_camera(1) = hoopPos_oddCam(0);
+            hoopPos_camera(2) = hoopPos_oddCam(1);
+
+            Matrix3d rot_hoopFrameToCamFrame;
+            cv2eigen(rotMat, rot_hoopFrameToCamFrame);
+
+            Vector3d camPos_world = currentState.block<3,1>(0,0);
+            Matrix3d rot_camFrameToWorldFrame = anglesToRotMat(currentState(3), currentState(4), currentState(5));
+
+            cout << "rot_camFrameToWorldFrame" << endl;
+            cout << rot_camFrameToWorldFrame << endl;
+
+            Vector3d hoopPos_world = rot_camFrameToWorldFrame*hoopPos_camera + camPos_world;            // calculate the board position in world frame.
+            Matrix3d rot_hoopFrameToWorldFrame = rot_camFrameToWorldFrame*rot_hoopFrameToCamFrame;    // calculate the rotation matrix from hoop frame to world frame.
+
+            //Mat pos = rotMat.t() * Mat(tvec);   //Calculate board position in world space
 
             /* seems somewhat complex, so did not remove it, but could not find a use for it....
             Mat pixelsTranslated = rotMat * pos;
@@ -131,11 +157,11 @@ bool vision::run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize) {
             //cout << "x " << x << ", y : " << y << ", z :" << z <<  ", yaw: " << yaw/M_PI*180 << ", pitch: " << pitch/M_PI*180 << ", roll: " << roll/M_PI*180 << endl;
             */
 
-            cv2eigen(pos, translation);
-            cv2eigen(rotMat, rotation);
+            cout << "hoopPos_world:" << endl;
+            cout << hoopPos_world << endl;
 
-            hoopTransVec = translation;
-            hoopRotMat = rotation;
+            hoopTransVec = hoopPos_world;
+            hoopRotMat = rot_hoopFrameToWorldFrame;
 
         }
     }
@@ -149,7 +175,16 @@ bool vision::run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize) {
     return foundMarker;
 }
 
+Matrix3d vision::anglesToRotMat(double roll, double pitch, double yaw){
+    Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
 
+    Eigen::Quaternion<double> q = yawAngle*pitchAngle*rollAngle;
+
+    Eigen::Matrix3d rotationMatrix = q.matrix();
+    return rotationMatrix;
+}
 
 
 
