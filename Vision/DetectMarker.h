@@ -11,6 +11,8 @@
 #include "opencv2/highgui.hpp"
 #include "CircleBoard.h"
 
+#define CAMERA_WIDTH 640
+#define CAMERA_HEIGHT 480
 
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
@@ -20,14 +22,18 @@ using namespace cv;
 using namespace std;
 using namespace Eigen;
 
+
+
 class vision {
 public:
-    static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
-    static bool run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
+    static bool run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize);
     static void setupVariables(int camera, const char *calibrationFile);
+    static void cleanup();
+    static void projectPointsOntoCam(vector<Point3d> cvPoints, vector<Point2d>& imagePoints);
+    static Mat debugFrame;  // for visualization.
+private:
+    static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
 };
-
-
 
 
 

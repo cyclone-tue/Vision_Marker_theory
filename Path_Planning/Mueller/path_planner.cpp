@@ -18,6 +18,17 @@ Settings settings;
 double timeInterval = 1;
 int number_of_points = 51;   // = N
 
+
+
+namespace {
+
+    const double d_after = 0.5;
+    const double v_after = 0.1;
+    const double d_before = 0.5;
+    const double v_in = 0.1;
+
+}
+
 int path_planner::getPathSize(){
     return number_of_points;
 }
@@ -49,13 +60,13 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
     set_defaults();                 // in solver.c
     setup_indexing();               // in solver.c
 
-    cout << "currentState:" << endl;
+    cout << "PP: currentState:" << endl;
     cout << currentState << endl;
-    cout << "currentTorque:" << endl;
+    cout << "PP: currentTorque:" << endl;
     cout << currentTorque << endl;
-    cout << "hoopTransVec:" << endl;
+    cout << "PP: hoopTransVec:" << endl;
     cout << hoopTransVec << endl;
-    cout << "hoopRotMat:" << endl;
+    cout << "PP: hoopRotMat:" << endl;
     cout << hoopRotMat << endl;
 
 
@@ -70,7 +81,7 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
     stateToPosDers(currentState, currentTorque, beginX, beginY, beginZ);
 
     getEndStatePosDers(currentState, hoopTransVec, hoopRotMat, endX, endY, endZ);
-    cout << "endX,Y,Z:" << endl;
+    cout << "PP: endX,Y,Z:" << endl;
     cout << endX << endl;
     cout << endY << endl;
     cout << endZ << endl;
@@ -130,10 +141,10 @@ void path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque,
 
 
 void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d& endX, Vector3d& endY, Vector3d& endZ) {
-    double d_before = 1;
-    double v_before = 1;
-    double d_after = 1;
-    double v_after = 1;
+    double d_before = -.1;
+    double v_before = .5;
+    double d_after = .1;
+    double v_after = .5;
 
     Matrix3d R = hoopRotMat;
 
@@ -154,7 +165,7 @@ void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransV
     double distance_between_first_second = (dist_out, dist_in).norm();
 
 
-    if(distance_to_second < distance_between_first_second*1.2) {
+    if(false){//distance_to_second < distance_between_first_second*1.2) {
         endX[0] = dist_out[0];
         endY[0] = dist_out[1];
         endZ[0] = dist_out[2];

@@ -25,13 +25,14 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 
 #add_executable(GenerateMarker Vision/Generate_Markers.cpp)
-#add_executable(DetectMarker Vision/Detect_Markers.cpp)
+#add_executable(DetectMarker Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
 #add_executable(CalibrateCamera Vision/calibrate_camera_charuco.cpp constants.h)
 #add_executable(CreateCalibration Vision/create_calibration.cpp)
 #AUX_SOURCE_DIRECTORY(Path_Planning/Mueller/cvxgen/ CVXGEN)
 set(CVXGEN Path_Planning/Mueller/cvxgen)
 add_executable(V_PP Path_Planning/Mueller/cvxgen/solver.c Vision/CircleBoard.cpp ${CVXGEN}/ldl.c ${CVXGEN}/matrix_support.c ${CVXGEN}/util.c V_PP.cpp Path_Planning/path_planner.cpp Path_Planning/Mueller/path_planner.cpp Vision/Detect_Markers.cpp V_PP.h)
-add_library(CycloneVision MODULE Vision/Detect_Markers.cpp Vision/CircleBoard.h)
+add_library(CycloneVision MODULE Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
+#add_executable(WebcamTest webcam_test.cpp)
 
 #target_link_libraries(GenerateMarker ${OpenCV_LIBS})
 #target_link_libraries(DetectMarker ${OpenCV_LIBS})
@@ -39,4 +40,7 @@ add_library(CycloneVision MODULE Vision/Detect_Markers.cpp Vision/CircleBoard.h)
 #target_link_libraries(CreateCalibration ${OpenCV_LIBS})
 target_link_libraries(CycloneVision ${OpenCV_LIBS})
 target_link_libraries(V_PP ${OpenCV_LIBS})
+#target_link_libraries(WebcamTest ${OpenCV_LIBS})
+
+
 add_dependencies(CycloneVision opencv)

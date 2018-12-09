@@ -31,4 +31,3 @@ Ptr<Board> CircleBoard::create(vector<Point2f> polarCoordinates, float markerLen
 
     return Board::create(objPoints, dictionary, ids);
 };
-
