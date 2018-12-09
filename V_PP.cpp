@@ -3,31 +3,30 @@
 #include "V_PP.h"
 
 
-int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd path, VectorXd timeDiffs, MatrixXd torques){
-    cout << "run frame" << endl;
-    bool foundPath = false;
+int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
-    Vector3d *hoopTransVec;
-    Matrix3d *hoopRotMat;
+    int pathLength = 0;
 
-    cout << "    run vision" << endl;
+    Vector3d hoopTransVec;
+    Matrix3d hoopRotMat;
+
+    cout << "run vision" << endl;
     bool foundHoop = vision::run(hoopTransVec, hoopRotMat);
-    cout << "    vision done" << endl;
-
 
 
     if(foundHoop == true){
-        foundPath = path_planner::run(currentState, currentTorque, *hoopTransVec, *hoopRotMat, path, timeDiffs, torques);
+        cout << "run path planner" << endl;
+        pathLength = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
     }
     else{
         cout << "    no hoop was found" << endl;
     }
-    return foundPath;
+    return pathLength;
 }
 
 
 void setup(){
-    vision::setupVariables(1, "../laptop_calibration.txt");
+    vision::setupVariables(0, "../laptop_calibration.txt");
 }
 
 
@@ -39,15 +38,21 @@ double* output_to_py(VectorXd currentState, VectorXd currentTorque, int* pathLen
 
     *pathLength = runFrame(visualize, currentState, currentTorque, path, timeDiffs, torques);
 
-    MatrixXd outputInfo(*pathLength, 12+1+4);
-    outputInfo << path, 0, timeDiffs, torques;
+    cout << *pathLength << endl;
 
-    //copy path to output array
-    double db_array[*pathLength][12 + 1 + 4];
-    Map<MatrixXd>(&db_array[0][0], path.rows(), path.cols()) = outputInfo;
-    db_p = &db_array[0][0];
+    if(*pathLength != 0) {      // should be more robust.
 
-    return db_p;
+        MatrixXd outputInfo(*pathLength, 12 + 1 + 4);
+        outputInfo << path, timeDiffs, torques;
+
+        //copy path to output array
+        double db_array[*pathLength][12 + 1 + 4];
+        Map<MatrixXd>(&db_array[0][0], outputInfo.rows(), outputInfo.cols()) = outputInfo;
+        db_p = &db_array[0][0];
+        return db_p;
+    }
+
+    return nullptr;
 }
 
 

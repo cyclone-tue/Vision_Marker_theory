@@ -26,7 +26,7 @@ const double g = 9.81;
 
 
 
-int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd path, VectorXd timeDiffs, MatrixXd torques);
+int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
 int main();
 
 extern "C" {

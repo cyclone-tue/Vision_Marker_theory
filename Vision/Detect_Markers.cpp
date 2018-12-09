@@ -48,7 +48,7 @@ bool vision::readCameraParameters(String filename, OutputArray cameraMat, Output
 }
 
 
-bool vision::run(Vector3d *hoopTransVec, Matrix3d *hoopRotMat) {
+bool vision::run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat) {
 
     bool foundMarker = false;
     Mat image, imageCopy;
@@ -78,17 +78,19 @@ bool vision::run(Vector3d *hoopTransVec, Matrix3d *hoopRotMat) {
             aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvec, tvec, 0.1);
         }
 
+        cout << "here" << endl;
+
         Mat rotMat;
         Rodrigues(rvec, rotMat);//Calculate rotation matrix for marker
 
         Mat pos = rotMat.t() * Mat(tvec); //Calculate marker position in world space
 
-
         cv2eigen(pos, translation);
         cv2eigen(rotMat, rotation);
 
-        *hoopTransVec << translation;
-        *hoopRotMat << rotation;
+
+        hoopTransVec = translation;
+        hoopRotMat = rotation;
     }
 
     cout << "hoopTransVec0:" << endl;
@@ -96,6 +98,8 @@ bool vision::run(Vector3d *hoopTransVec, Matrix3d *hoopRotMat) {
 
     imshow("out", imageCopy);
     waitKey(1);
+
+    cout << "here" << endl;
 
     return foundMarker;
 }
@@ -139,10 +143,9 @@ double* vision::MatrixToArray(MatrixXd m) {
 void vision::setupVariables(int camera, const char* calibrationFile){
     String filename = String(calibrationFile);
     cout << "Opening camera" << endl;
-    
+
     cap = VideoCapture();
 
-    //cap.set(cv::CAP_PROP_FPS, 1);;
     cap.open(camera);
     if (!cap.isOpened())  // check if succeeded to connect to the camera
         CV_Assert("Cam open failed");

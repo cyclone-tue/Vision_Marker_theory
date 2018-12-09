@@ -12,12 +12,11 @@ Vars vars;
 Params params;
 Workspace work;
 Settings settings;
-double m;
 
 // let N be the number of points on the path including start and end point.
 
-double timeInterval;
-int number_of_points;
+double timeInterval = 1;
+int number_of_points = 51;   // = N
 
 int path_planner::getPathSize(){
     return number_of_points;
@@ -31,7 +30,22 @@ void path_planner::release(){
     return;
 }
 
-int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat, MatrixXd path, MatrixXd timeDiffs, MatrixXd torques){
+/*
+Let the hoop coordinate frame be as follows:
+The x-axis goes through the main symmetry axis of the hoop, positive direction given by the passage direction.
+The y-axis is horizontal in the earth-frame, positive direction to the right, from the incoming drone point of view.
+The z-axis is as in a righthanded coordinate frame.
+
+The positive direction of the z-axis of the world frame is parallel to the gravitational acceleration.
+All used frames stand still with respect to the earth.
+*/
+int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+    // currentState = state of drone in world frame.
+    // hoopTransVec = hoop position in world frame.
+    // hoopRotMat = rotation from hoop frame to world frame.
+
+
+
     set_defaults();                 // in solver.c
     setup_indexing();               // in solver.c
 
@@ -52,9 +66,14 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
     Vector3d endX;
     Vector3d endY;
     Vector3d endZ;
-    stateToPosDers(currentState, currentTorque, beginX, beginY, beginZ);
-    getEndStatePosDers(currentState, hoopTransVec, hoopRotMat, endX, endY, endZ);
 
+    stateToPosDers(currentState, currentTorque, beginX, beginY, beginZ);
+
+    getEndStatePosDers(currentState, hoopTransVec, hoopRotMat, endX, endY, endZ);
+    cout << "endX,Y,Z:" << endl;
+    cout << endX << endl;
+    cout << endY << endl;
+    cout << endZ << endl;
 
 
     MatrixXd pos(51, 3);
@@ -81,12 +100,19 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
         jerk(i, 2) = *vars.jerk[i];
     }
 
-    jerkToPath(currentState, pos, jerk, timeInterval, number_of_points, path, timeDiffs, torques);
 
-    return true;
+
+    path.resize(number_of_points, 12);
+    timeDiffs.resize(number_of_points);
+    torques.resize(number_of_points, 4);
+
+
+    jerkToPath(currentState, pos, jerk, path, timeDiffs, torques);
+
+    return number_of_points;
 }
 
-void path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque, Vector3d beginX, Vector3d beginY, Vector3d beginZ){
+void path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque, Vector3d& beginX, Vector3d& beginY, Vector3d& beginZ){
     beginX[0] = currentState[0];
     beginY[0] = currentState[1];
     beginZ[0] = currentState[2];
@@ -103,7 +129,7 @@ void path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque,
 }
 
 
-void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d endX, Vector3d endY, Vector3d endZ) {
+void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d& endX, Vector3d& endY, Vector3d& endZ) {
     double d_before = 1;
     double v_before = 1;
     double d_after = 1;
@@ -167,10 +193,15 @@ timeDiffs is a vector of length N-1, with the time intervalls between the states
 torques is a N by 4 matrix each row being [thrust, torquex, torquey, torquez].
 
 */
-void path_planner::jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, double timeInterval, double number_of_points, MatrixXd path, VectorXd timeDiffs, MatrixXd torques){
+void path_planner::jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+
+
+
     double dt = timeInterval/number_of_points;
 
     path.block<1,12>(0,0) = beginState;
+    timeDiffs(0) = 0;
+
 
     for(int i = 1; i < number_of_points; i++){  // time = i*dt
 

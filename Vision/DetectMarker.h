@@ -23,7 +23,7 @@ using namespace Eigen;
 class vision {
 public:
     static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
-    static bool run(Vector3d *hoopTransVec, Matrix3d *hoopRotMat);
+    static bool run(Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
     static void setupVariables(int camera, const char *calibrationFile);
 };
 
