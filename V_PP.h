@@ -28,7 +28,7 @@ const double g = 9.81;
 
 int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
 int main();
-void runVisualize(MatrixXd& path, bool displayPath);
+void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
 
 extern "C" {
     double *output_to_py(VectorXd currentState, VectorXd currentTorque, int *pathLength, bool visualize);

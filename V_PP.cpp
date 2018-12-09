@@ -43,7 +43,7 @@ double* output_to_py(VectorXd currentState, VectorXd currentTorque, int* pathLen
 
     *pathLength = runFrame(visualize, currentState, currentTorque, path, timeDiffs, torques);
 
-    if(visualize) runVisualize(path, *pathLength!=0);
+    if(visualize) runVisualize(currentState, path, *pathLength!=0);
 
     if(*pathLength != 0) {      // should be more robust.
 
@@ -60,7 +60,7 @@ double* output_to_py(VectorXd currentState, VectorXd currentTorque, int* pathLen
     return nullptr;
 }
 
-void runVisualize(MatrixXd& path, bool displayPath){
+void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
     Mat frame;
     vision::debugFrame.copyTo(frame);
@@ -73,10 +73,13 @@ void runVisualize(MatrixXd& path, bool displayPath){
         for (int row = 0; row < points.rows(); row++) {
             cvPoints.push_back(Point3d(points(row, 0), points(row, 1), points(row, 2)));
         }
+
         cout << cvPoints << endl;
 
         vector<Point2d> imagePoints;
-        vision::projectPointsOntoCam(cvPoints, imagePoints);
+        vision::projectPointsOntoCam(cvPoints, currentState, imagePoints);
+
+        cout << imagePoints << endl;
 
 
         for (int j = 0; j < imagePoints.size() - 1; j++) {

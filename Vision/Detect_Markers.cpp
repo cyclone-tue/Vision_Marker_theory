@@ -115,10 +115,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
             cv2eigen(rotMat, rot_hoopFrameToCamFrame);
 
             Vector3d camPos_world = currentState.block<3,1>(0,0);
-            Matrix3d rot_camFrameToWorldFrame = anglesToRotMat(currentState(3), currentState(4), currentState(5));
-
-            cout << "rot_camFrameToWorldFrame" << endl;
-            cout << rot_camFrameToWorldFrame << endl;
+            Matrix3d rot_camFrameToWorldFrame = anglesToRotMatXYZ(currentState(3), currentState(4), currentState(5));
 
             Vector3d hoopPos_world = rot_camFrameToWorldFrame*hoopPos_camera + camPos_world;            // calculate the board position in world frame.
             Matrix3d rot_hoopFrameToWorldFrame = rot_camFrameToWorldFrame*rot_hoopFrameToCamFrame;    // calculate the rotation matrix from hoop frame to world frame.
@@ -157,9 +154,6 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
             //cout << "x " << x << ", y : " << y << ", z :" << z <<  ", yaw: " << yaw/M_PI*180 << ", pitch: " << pitch/M_PI*180 << ", roll: " << roll/M_PI*180 << endl;
             */
 
-            cout << "hoopPos_world:" << endl;
-            cout << hoopPos_world << endl;
-
             hoopTransVec = hoopPos_world;
             hoopRotMat = rot_hoopFrameToWorldFrame;
 
@@ -175,12 +169,23 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
     return foundMarker;
 }
 
-Matrix3d vision::anglesToRotMat(double roll, double pitch, double yaw){
+Matrix3d vision::anglesToRotMatXYZ(double roll, double pitch, double yaw){
     Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
     Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
     Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
 
     Eigen::Quaternion<double> q = yawAngle*pitchAngle*rollAngle;
+
+    Eigen::Matrix3d rotationMatrix = q.matrix();
+    return rotationMatrix;
+}
+
+Matrix3d vision::anglesToRotMatZYX(double roll, double pitch, double yaw){
+    Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitZ());
+
+    Eigen::Quaternion<double> q = rollAngle*pitchAngle*yawAngle;
 
     Eigen::Matrix3d rotationMatrix = q.matrix();
     return rotationMatrix;
@@ -286,8 +291,24 @@ void vision::setupVariables(int camera, const char* calibrationFile){
     }
 }
 
-void vision::projectPointsOntoCam(vector<Point3d> cvPoints, vector<Point2d>& imagePoints){
-    projectPoints(cvPoints, Vec3d(0, 0, 0), Vec3d(0, 0, 0), cameraMatrix, distCoef, imagePoints);
+void vision::projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentState, vector<Point2d>& imagePoints){
+
+    Matrix3d rot_worldFrameToCamFrame = anglesToRotMatZYX(-currentState(3), -currentState(4), -currentState(5));
+    Matrix3d rot_camFrameToOddcamFrame;
+    rot_camFrameToOddcamFrame << 0,1,0, 0,0,1, 1,0,0;
+    Matrix3d rot_worldFrameToOddcamFrame = rot_camFrameToOddcamFrame*rot_worldFrameToCamFrame;
+
+    Mat cvrot_worldFrameToOddcamFrame;
+    eigen2cv(rot_worldFrameToOddcamFrame, cvrot_worldFrameToOddcamFrame);
+
+    vector<Point3d> points(cvPoints.size());
+    for(int i = 0; i < cvPoints.size(); i++){
+        Mat point = Mat(cvPoints[i], false);
+        Mat newPoint = cvrot_worldFrameToOddcamFrame*point;
+        newPoint.copyTo( cv::Mat(points[i], false) );
+    }
+
+    projectPoints(points, Vec3d(0, 0, 0), Vec3d(0, 0, 0), cameraMatrix, distCoef, imagePoints);
     return;
 }
 

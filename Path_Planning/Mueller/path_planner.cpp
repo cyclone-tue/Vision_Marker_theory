@@ -141,9 +141,9 @@ void path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque,
 
 
 void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d& endX, Vector3d& endY, Vector3d& endZ) {
-    double d_before = -.1;
+    double d_before = -.01;
     double v_before = .5;
-    double d_after = .1;
+    double d_after = .01;
     double v_after = .5;
 
     Matrix3d R = hoopRotMat;
