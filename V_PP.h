@@ -32,7 +32,7 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
 
 extern "C" {
     double *output_to_py(VectorXd currentState, VectorXd currentTorque, int *pathLength, bool visualize);
-    void setup();
+    void setup(const char* camera_calibration_file);
     void cleanup();
 }
 

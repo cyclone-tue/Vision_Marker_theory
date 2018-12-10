@@ -26,8 +26,8 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
 }
 
 
-void setup(){
-    vision::setupVariables(0, "../laptop_calibration.txt");
+void setup(const char* camera_calibration_file){
+    vision::setupVariables(0, camera_calibration_file);
 }
 
 void cleanup(){
@@ -98,7 +98,7 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
 int main(){
 
-    setup();
+    setup("../laptop_calibration.txt");
     cout << "setup done" << endl;
 
     VectorXd currentState(12);
