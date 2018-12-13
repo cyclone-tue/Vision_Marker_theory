@@ -48,7 +48,7 @@ extern "C" {
                                 : the first element is the time difference between the current time and the time of the first state in path.
                     : torques   : each row is the [thrust, torqueX, torqueY, torqueZ] corresponding to the same row in path.
     */
-    double *output_to_py(double* currentState, double* currentTorque, int *pathLength, bool visualize);
+    double *output_to_py(double* currentStateArray, double* currentTorqueArray, int *pathLength, bool visualize);
     void setup(const char* camera_calibration_file);
     void cleanup();
 }

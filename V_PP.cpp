@@ -53,6 +53,7 @@ return value    : pointer to array of doubles, being the elements([row0,row1, ..
                 : torques   : each row is the [thrust, torqueX, torqueY, torqueZ] corresponding to the same row in path.
 */
 double* output_to_py(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize){
+
     VectorXd currentState(12);
     VectorXd currentTorque(4);
     for(int i = 0; i <= 11; i++){
@@ -76,13 +77,15 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
         MatrixXd outputInfo(*pathLength, 12 + 1 + 4);
         outputInfo << path, timeDiffs, torques;
 
+        cout << outputInfo << endl;
+
         //copy path to output array
         double db_array[*pathLength][12 + 1 + 4];
         Map<MatrixXd>(&db_array[0][0], outputInfo.rows(), outputInfo.cols()) = outputInfo;
         db_p = &db_array[0][0];
         return db_p;
     }
-
+    
     return nullptr;
 }
 
