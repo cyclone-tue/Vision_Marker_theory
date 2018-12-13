@@ -26,7 +26,7 @@ using namespace Eigen;
 
 class vision {
 public:
-    static bool run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize);
+    static bool run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
     static void setupVariables(int camera, const char *calibrationFile);
     static void cleanup();
     static void projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentState, vector<Point2d>& imagePoints);

@@ -11,7 +11,7 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
     Matrix3d hoopRotMat;
 
     cout << "run vision" << endl;
-    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat, visualize);
+    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
 
 
     if(foundHoop == true){

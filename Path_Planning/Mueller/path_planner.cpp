@@ -141,9 +141,9 @@ void path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque,
 
 
 void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d& endX, Vector3d& endY, Vector3d& endZ) {
-    double d_before = -.01;
+    double d_before = -.5;
     double v_before = .5;
-    double d_after = .01;
+    double d_after = .5;
     double v_after = .5;
 
     Matrix3d R = hoopRotMat;
@@ -161,11 +161,11 @@ void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransV
     vel_out = R*vel_out;
 
     double distance_to_first = (dist_in - currentState).norm();
-    double distance_to_second = (dist_out, currentState).norm();
-    double distance_between_first_second = (dist_out, dist_in).norm();
+    double distance_to_second = (dist_out - currentState).norm();
+    double distance_between_first_second = (dist_out - dist_in).norm();
 
 
-    if(false){//distance_to_second < distance_between_first_second*1.2) {
+    if(distance_to_second < distance_between_first_second*1.2) {       //go to point after hoop
         endX[0] = dist_out[0];
         endY[0] = dist_out[1];
         endZ[0] = dist_out[2];
@@ -175,7 +175,8 @@ void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransV
         endX[2] = 0;
         endY[2] = 0;
         endZ[2] = 0;
-    } else {
+        cout << "=====================================================================================" << endl;
+    } else {                    // go to point before hoop.
         endX[0] = dist_in[0];
         endY[0] = dist_in[1];
         endZ[0] = dist_in[2];
