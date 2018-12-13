@@ -30,12 +30,38 @@ void setup(const char* camera_calibration_file){
     vision::setupVariables(0, camera_calibration_file);
 }
 
+
 void cleanup(){
     vision::cleanup();
 }
 
+/*
+The positive direction of the z-axis of the world frame is parallel to the gravitational acceleration.
+All used frames stand still with respect to the earth.
 
-double* output_to_py(VectorXd currentState, VectorXd currentTorque, int* pathLength, bool visualize){
+The arguments are the following:
+currentState    : state of drone in world frame.
+currentTorque   : [thrust, torqueX, torqueY, torqueZ].
+*pathLength     : number of states in the returned path.
+                : initial value is not used.
+
+return value    : pointer to array of doubles, being the elements([row0,row1, .. row_n]) of the following matrix:
+                : The matrix is a concatenation of the following matrices, each with *pathLength rows.
+                : path      : each row is a state in world space of the path.
+                : timeDiffs : each i'th element is the time difference between the i-1'th and i'th state in path.
+                            : the first element is the time difference between the current time and the time of the first state in path.
+                : torques   : each row is the [thrust, torqueX, torqueY, torqueZ] corresponding to the same row in path.
+*/
+double* output_to_py(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize){
+    VectorXd currentState(12);
+    VectorXd currentTorque(4);
+    for(int i = 0; i <= 11; i++){
+        currentState(i) = currentStateArray[i];
+    }
+    for(int i = 0; i <= 3; i++){
+        currentTorque(i) = currentTorqueArray[i];
+    }
+
     double* db_p;  // stands for ...
     MatrixXd path;
     VectorXd timeDiffs;
@@ -101,15 +127,13 @@ int main(){
     setup("../laptop_calibration.txt");
     cout << "setup done" << endl;
 
-    VectorXd currentState(12);
-    VectorXd currentTorque(4);
+    double currentState [12] = {0,0,0, 0,0,0, 0,0,0, 0,0,0};
+    double currentTorque [4] = {0,0,0,0};
     int* pathLength = new int(1);
     bool visualize = true;
-    currentState << 0,0,0, 0,0,0, 0,0,0, 0,0,0;
-    currentTorque << 0,0,0,0;
+
 
     double *db_p;
-    //for(int i = 0; i<=1000; i++) {
     while(true){
         db_p = output_to_py(currentState, currentTorque, pathLength, visualize);
     }
