@@ -57,7 +57,6 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
     cout << allConstraints << endl;
 
     int waypoints = allConstraints.cols()/3 - 1;
-    cout << "waypoints: " << waypoints << endl;
     int totalLength = 0;
 
     MatrixXd pathPart(number_of_points, 12);
@@ -84,9 +83,7 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
         totalLength += points;
 
         beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);
-        cout << beginState_temp << endl;
         beginState = beginState_temp.replicate(1,12);
-        cout << "beginState:" << beginState << endl;
 
         path = concatenate(path, pathPart);
 
