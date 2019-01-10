@@ -26,8 +26,8 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
 }
 
 
-void setup(const char* camera_calibration_file){
-    vision::setupVariables(0, camera_calibration_file);
+void setup(const int camera, const char* camera_calibration_file){
+    vision::setupVariables(camera, camera_calibration_file);
 }
 
 
