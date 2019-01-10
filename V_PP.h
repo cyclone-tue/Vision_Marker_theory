@@ -49,7 +49,7 @@ extern "C" {
                     : torques   : each row is the [thrust, torqueX, torqueY, torqueZ] corresponding to the same row in path.
     */
     double *output_to_py(double* currentStateArray, double* currentTorqueArray, int *pathLength, bool visualize);
-    void setup(const int camera, const char* camera_calibration_file);
+    void setup(int camera, const char* camera_calibration_file);
     void cleanup();
 }
 
