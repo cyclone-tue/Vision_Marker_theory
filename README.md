@@ -1,2 +1,2 @@
 # Vision_Marker_theory
-Marker implementation from last years TMC hackethon
+Vision implementation using aruco markers

@@ -14226,6 +14226,7 @@ void ldl_factor(void) {
   }
 #endif
 }
+
 double check_factorization(void) {
   /* Returns the squared Frobenius norm of A - L*D*L'. */
   double temp, residual;

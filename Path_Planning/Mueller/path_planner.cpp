@@ -1,26 +1,20 @@
 #include "path_planner.h"
 
 
-#include "../../constants.h"
-
-extern "C"
-{
-#include "cvxgen/solver.h"
-}
-
 Vars vars;
 Params params;
 Workspace work;
 Settings settings;
 
-// let N be the number of points on the path including start and end point.
-
-double timeInterval = 1;
-int number_of_points = 51;   // = N
-
 
 
 namespace {
+    
+    // let N be the number of points on the path including start and end point.
+
+    double timeInterval = 1;
+    int number_of_points = 51;   // = N
+
 
     const double d_after = 0.5;
     const double v_after = 0.1;
@@ -55,40 +49,104 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
     // hoopTransVec = hoop position in world frame.
     // hoopRotMat = rotation from hoop frame to world frame.
 
-
-
     set_defaults();                 // in solver.c
     setup_indexing();               // in solver.c
 
-    cout << "PP: currentState:" << endl;
-    cout << currentState << endl;
-    cout << "PP: currentTorque:" << endl;
-    cout << currentTorque << endl;
-    cout << "PP: hoopTransVec:" << endl;
-    cout << hoopTransVec << endl;
-    cout << "PP: hoopRotMat:" << endl;
-    cout << hoopRotMat << endl;
+
+    MatrixXd allConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat);
+    cout << allConstraints << endl;
+
+    int waypoints = allConstraints.cols()/3 - 1;
+    int totalLength = 0;
+
+    MatrixXd pathPart(number_of_points, 12);
+    VectorXd timeDiffsPart(number_of_points);
+    MatrixXd torquesPart(number_of_points, 4);
+    MatrixXd constraintsPart(6,3);		// constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
 
 
-    // beginX, endX are built as [x, xd, xdd]
-    Vector3d beginX;
-    Vector3d beginY;
-    Vector3d beginZ;
-    Vector3d endX;
-    Vector3d endY;
-    Vector3d endZ;
-
-    stateToPosDers(currentState, currentTorque, beginX, beginY, beginZ);
-
-    getEndStatePosDers(currentState, hoopTransVec, hoopRotMat, endX, endY, endZ);
-    cout << "PP: endX,Y,Z:" << endl;
-    cout << endX << endl;
-    cout << endY << endl;
-    cout << endZ << endl;
 
 
+    //path.resize(0,12);
+    //timeDiffs.resize(0);
+    //torques.resize(0,4);
+
+    VectorXd beginState(12);
+    beginState = currentState;
+    VectorXd beginState_temp(12);
+    for (int i = 0; i <= waypoints; i++) {							// iterate over path intervals.
+
+        constraintsPart = allConstraints.block<6,3>(0, i*3); 			// get constraints for this path interval
+
+        getPathSegment(beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
+        int points = pathPart.rows();
+        totalLength += points;
+
+        beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);
+        beginState = beginState_temp.replicate(1,12);
+
+        path = concatenate(path, pathPart);
+
+        //MatrixXd path_temp(totalLength, 12);
+        //path_temp.block(0,0, path.rows(), 12) = path.replicate(path.rows(), 12);
+        //path_temp.block(totalLength-points-1, 0, points, 12) = pathPart.replicate(points, 12);
+        //path.resize(totalLength, 12);
+        //path = path_temp.replicate(totalLength, 12);
+
+
+        timeDiffs = concatenateVec(timeDiffs, timeDiffsPart);
+
+        //VectorXd timeDiffs_temp(totalLength);
+        //timeDiffs_temp.block(0,0, timeDiffs.rows(), 1) = timeDiffs.replicate(timeDiffs.rows(),1);
+        //timeDiffs_temp.block(totalLength-points-1, 0, points, 12) = timeDiffsPart.replicate(points,1);
+        //cout << "a" << endl;
+        //timeDiffs.resize(totalLength);
+        //cout << "b" << endl;
+        //timeDiffs = timeDiffs_temp.replicate(totalLength,1);
+
+
+        torques = concatenate(torques, torquesPart);
+
+        //MatrixXd torques_temp(totalLength,4);
+        //torques_temp.block(0,0, torques.rows(), 1) = torques.replicate(torques.rows(), 4);
+        //torques_temp.block(totalLength-points-1,0,points,4) = torquesPart.replicate(points, 4);
+        //torques.resize(totalLength, 4);
+        //torques = torques_temp.replicate(totalLength, 4);
+
+
+    }
+
+    return number_of_points*(waypoints + 1);
+}
+
+MatrixXd path_planner::concatenate(MatrixXd& one, MatrixXd& two){
+    MatrixXd result(one.rows() + two.rows(), one.cols());
+    result.block(0,0, one.rows(), one.cols()) = one.replicate(one.rows(), one.cols());
+    result.block(one.rows(), 0, two.rows(), two.cols()) = two.replicate(two.rows(), two.cols());
+    return result;
+}
+
+VectorXd path_planner::concatenateVec(VectorXd& one, VectorXd& two){
+    VectorXd result(one.size() + two.size());
+    result.block(0,0, one.size(), 1) = one.replicate(one.size(),1);
+    result.block(one.size(), 0, two.size(), 1) = two.replicate(two.size(), 1);
+    return result;
+}
+
+/*
+currentState is size-12 vector.
+constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
+ */
+void path_planner::getPathSegment(VectorXd currentState, MatrixXd constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
     MatrixXd pos(51, 3);
     MatrixXd jerk(51, 3);
+
+    Vector3d beginX = constraints.block<1,3>(0,0);
+    Vector3d endX = constraints.block<1,3>(3,0);
+    Vector3d beginY = constraints.block<1,3>(1,0);
+    Vector3d endY = constraints.block<1,3>(4,0);
+    Vector3d beginZ = constraints.block<1,3>(2,0);
+    Vector3d endZ = constraints.block<1,3>(5,0);
 
     load_default_data(beginX, endX);            // x
     long num_iters_x = solve();                   // in solver.c
@@ -112,39 +170,47 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
     }
 
 
-
-    path.resize(number_of_points, 12);
-    timeDiffs.resize(number_of_points);
-    torques.resize(number_of_points, 4);
-
-
     jerkToPath(currentState, pos, jerk, path, timeDiffs, torques);
-
-    return number_of_points;
-}
-
-void path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque, Vector3d& beginX, Vector3d& beginY, Vector3d& beginZ){
-    beginX[0] = currentState[0];
-    beginY[0] = currentState[1];
-    beginZ[0] = currentState[2];
-    beginX[1] = currentState[3];
-    beginY[1] = currentState[4];
-    beginZ[1] = currentState[5];
-    double phi = currentState[6];
-    double theta = currentState[7];
-    double psi = currentState[8];
-    double T = currentTorque[0];    //thrust
-    beginX[2] = -(sin(phi)*sin(psi) + cos(phi)*cos(psi)*sin(theta))*T/m;
-    beginY[2] = -(cos(phi)*sin(psi)*sin(theta) - cos(psi)*sin(psi))*T/m;
-    beginZ[2] = -cos(phi)*cos(theta)*T/m + g;
 }
 
 
-void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d& endX, Vector3d& endY, Vector3d& endZ) {
-    double d_before = -.01;
+MatrixXd path_planner::getConstraints(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat){
+
+    // ders = [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
+
+    Matrix3d currentDers = stateToPosDers(currentState, currentTorque);
+    Matrix3d before_ders = get_before_ders(hoopTransVec, hoopRotMat);
+    Matrix3d after_ders = get_after_ders(hoopTransVec, hoopRotMat);
+
+    Vector3d pos_now = currentState.block<3,1>(0,0);
+    Vector3d pos_in = before_ders.block<3,1>(0,0);
+    Vector3d pos_out = after_ders.block<3,1>(0,0);
+    double distance_to_second = (pos_out - pos_now).norm();
+    double distance_between_first_second = (pos_out - pos_in).norm();
+
+    MatrixXd allConstraints(6,6);
+    if(distance_to_second < distance_between_first_second*1.2) {       //go to point after hoop
+        allConstraints.resize(6,3);
+        allConstraints.block<3, 3>(0, 0) = currentDers;        // constraints of first trajectory part (currentState -> stateBeforeHoop)
+        allConstraints.block<3, 3>(3, 0) = after_ders;
+    }
+    else{                                       // go to point before hoop.
+        allConstraints.block<3, 3>(0, 0) = currentDers;		// constraints of first trajectory part (currentState -> stateBeforeHoop)
+        allConstraints.block<3, 3>(3, 0) = before_ders;
+        allConstraints.block<3, 3>(0, 3) = before_ders;		// constraints of second trajectory part (stateBeforeHoop -> stateAfterHoop)
+        allConstraints.block<3, 3>(3, 3) = after_ders;
+    }
+
+    return allConstraints;
+}
+
+/*
+return format is
+ [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
+*/
+Matrix3d path_planner::get_before_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat){
+    double d_before = -.5;
     double v_before = .5;
-    double d_after = .01;
-    double v_after = .5;
 
     Matrix3d R = hoopRotMat;
 
@@ -154,41 +220,69 @@ void path_planner::getEndStatePosDers(VectorXd currentState, Vector3d hoopTransV
     dist_in = hoopTransVec + R*dist_in;				// world frame
     vel_in = R*vel_in;
 
+    Matrix3d ders;
+    ders.block<3,1>(0,0) = dist_in;
+    ders.block<3,1>(0,1) = vel_in;
+    ders(0,2) = 0;
+    ders(1,2) = 0;
+    ders(2,2) = 0;
+
+    return ders;
+}
+
+/*
+return format is
+ [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
+*/
+Matrix3d path_planner::get_after_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat){
+    double d_after = .5;
+    double v_after = .5;
+
+    Matrix3d R = hoopRotMat;
+
     // state relative to hoop after hoop
     Vector3d dist_out(d_after, 0, 0);				// hoop frame
     Vector3d vel_out(v_after, 0, 0);
     dist_out = hoopTransVec + R*dist_out;			// world frame
     vel_out = R*vel_out;
 
-    double distance_to_first = (dist_in - currentState).norm();
-    double distance_to_second = (dist_out, currentState).norm();
-    double distance_between_first_second = (dist_out, dist_in).norm();
+    Matrix3d ders;
+    ders.block<3,1>(0,0) = dist_out;
+    ders.block<3,1>(0,1) = vel_out;
+    ders(0,2) = 0;
+    ders(1,2) = 0;
+    ders(2,2) = 0;
 
-
-    if(false){//distance_to_second < distance_between_first_second*1.2) {
-        endX[0] = dist_out[0];
-        endY[0] = dist_out[1];
-        endZ[0] = dist_out[2];
-        endX[1] = vel_out[0];
-        endY[1] = vel_out[1];
-        endZ[1] = vel_out[2];
-        endX[2] = 0;
-        endY[2] = 0;
-        endZ[2] = 0;
-    } else {
-        endX[0] = dist_in[0];
-        endY[0] = dist_in[1];
-        endZ[0] = dist_in[2];
-        endX[1] = vel_in[0];
-        endY[1] = vel_in[1];
-        endZ[1] = vel_in[2];
-        endX[2] = 0;
-        endY[2] = 0;
-        endZ[2] = 0;
-    }
-
-    return;
+    return ders;
 }
+
+
+
+/*
+return format is
+ [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
+*/
+Matrix3d path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque){
+
+    Matrix3d ders;
+
+    ders(0,0) = currentState[0];
+    ders(1,0) = currentState[1];
+    ders(2,0) = currentState[2];
+    ders(0,1) = currentState[3];
+    ders(1,1) = currentState[4];
+    ders(2,1) = currentState[5];
+    double phi = currentState[6];
+    double theta = currentState[7];
+    double psi = currentState[8];
+    double T = currentTorque[0];    //thrust
+    ders(0,2) = -(sin(phi)*sin(psi) + cos(phi)*cos(psi)*sin(theta))*T/m;
+    ders(1,2) = -(cos(phi)*sin(psi)*sin(theta) - cos(psi)*sin(psi))*T/m;
+    ders(2,2) = -cos(phi)*cos(theta)*T/m + g;
+
+    return ders;
+}
+
 
 
 /*
@@ -218,7 +312,7 @@ void path_planner::jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, 
 
         // calculate state at time
         path.block<1,3>(i,0) = pos.block<1,3>(i,0);
-        path.block<1,3>(i,3) = path.block<1,3>(i-1,3) + dt*jerk.block<1,3>(i,0);
+        path.block<1,3>(i,3) = path.block<1,3>(i-1,3) + dt*jerk.block<1,3>(i,0);    // very incorrect.
 
         double psi = 0;
         path(i,8) = psi;

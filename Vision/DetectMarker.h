@@ -7,8 +7,8 @@
 #include <math.h>
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
-#include "opencv2/aruco.hpp"
-#include "opencv2/highgui.hpp"
+#include <opencv2/aruco.hpp>        //
+#include <opencv2/highgui.hpp>      //
 #include "CircleBoard.h"
 
 #define CAMERA_WIDTH 640
@@ -26,7 +26,7 @@ using namespace Eigen;
 
 class vision {
 public:
-    static bool run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool visualize);
+    static bool run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
     static void setupVariables(int camera, const char *calibrationFile);
     static void cleanup();
     static void projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentState, vector<Point2d>& imagePoints);

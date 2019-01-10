@@ -10,17 +10,13 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
     Vector3d hoopTransVec;
     Matrix3d hoopRotMat;
 
-    cout << "run vision" << endl;
-    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat, visualize);
+    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
 
 
     if(foundHoop == true){
-        cout << "run path planner" << endl;
         pathLength = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
     }
-    else{
-        cout << "    no hoop was found" << endl;
-    }
+
 
     return pathLength;
 }
@@ -64,9 +60,9 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     }
 
     double* db_p;  // stands for ...
-    MatrixXd path;
-    VectorXd timeDiffs;
-    MatrixXd torques;
+    MatrixXd path(0,12);
+    VectorXd timeDiffs(0);
+    MatrixXd torques(0,4);
 
     *pathLength = runFrame(visualize, currentState, currentTorque, path, timeDiffs, torques);
 
@@ -77,6 +73,7 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
         MatrixXd outputInfo(*pathLength, 12 + 1 + 4);
         outputInfo << path, timeDiffs, torques;
 
+        cout << "path,timeDiffs,torques, from output_to_py" << endl;
         cout << outputInfo << endl;
 
         //copy path to output array
@@ -89,6 +86,9 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     return nullptr;
 }
 
+/*
+path contains x times 12 elements.
+ */
 void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
     Mat frame;
@@ -96,19 +96,14 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
     if(displayPath) {
         MatrixXd points(path.rows(), path.cols());
-        points << path.block(0, 0, path.rows(), 3);           // each row is an [x,y,z] point.
 
         vector<Point3d> cvPoints;
         for (int row = 0; row < points.rows(); row++) {
             cvPoints.push_back(Point3d(points(row, 0), points(row, 1), points(row, 2)));
         }
 
-        cout << cvPoints << endl;
-
         vector<Point2d> imagePoints;
         vision::projectPointsOntoCam(cvPoints, currentState, imagePoints);
-
-        cout << imagePoints << endl;
 
 
         for (int j = 0; j < imagePoints.size() - 1; j++) {
