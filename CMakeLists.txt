@@ -24,10 +24,12 @@ endmacro()
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 
+
 #add_executable(GenerateMarker Vision/Generate_Markers.cpp)
 #add_executable(DetectMarker Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
 #add_executable(CalibrateCamera Vision/calibrate_camera_charuco.cpp constants.h)
 #add_executable(CreateCalibration Vision/create_calibration.cpp)
+
 
 
 set(CVXGEN_PATH Path_Planning/Mueller/cvxgen)
@@ -53,6 +55,7 @@ add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp)
 #target_link_libraries(CalibrateCamera ${OpenCV_LIBS})
 #target_link_libraries(CreateCalibration ${OpenCV_LIBS})
 target_link_libraries(CycloneVision ${OpenCV_LIBS})
+
 target_link_libraries(V_PP ${OpenCV_LIBS})
 #target_link_libraries(WebcamTest ${OpenCV_LIBS})
 
