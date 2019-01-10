@@ -21,9 +21,6 @@ using Eigen::DiagonalMatrix;
 using namespace std;
 using namespace Eigen;
 
-const double g = 9.81;
-
-
 
 
 int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);

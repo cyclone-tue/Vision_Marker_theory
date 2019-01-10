@@ -1,7 +1,7 @@
 //
 // Created by arnoud on 12/9/18.
 //
-
+/*
 if(visualize){
 
 }
@@ -209,3 +209,5 @@ void runPathPlanner(InputArray hoopTransVec, InputArray hoopRotMat, OutputArray 
     r.copyTo(output);
     //cout << "Path: " << r.rows << "x" << r.cols ch << endl;
 }
+
+ */

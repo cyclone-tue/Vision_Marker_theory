@@ -28,22 +28,33 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 #add_executable(DetectMarker Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
 #add_executable(CalibrateCamera Vision/calibrate_camera_charuco.cpp constants.h)
 #add_executable(CreateCalibration Vision/create_calibration.cpp)
-#AUX_SOURCE_DIRECTORY(Path_Planning/Mueller/cvxgen/ CVXGEN)
-set(CVXGEN Path_Planning/Mueller/cvxgen)
-add_executable(V_PP Path_Planning/Mueller/cvxgen/solver.c Vision/CircleBoard.cpp ${CVXGEN}/ldl.c ${CVXGEN}/matrix_support.c ${CVXGEN}/util.c V_PP.cpp Path_Planning/path_planner.cpp Path_Planning/Mueller/path_planner.cpp Vision/Detect_Markers.cpp V_PP.h)
+
+
+set(CVXGEN_PATH Path_Planning/Mueller/cvxgen)
+set(CVXGEN ${CVXGEN_PATH}/solver.c Vision/CircleBoard.cpp ${CVXGEN_PATH}/ldl.c ${CVXGEN_PATH}/matrix_support.c ${CVXGEN_PATH}/util.c)
+set(MUELLER Path_Planning/Mueller/path_planner.cpp ${CVXGEN})
+set(POLYNOMIAL Path_Planning/Polynomial/gettingPosDers.cpp Path_Planning/Polynomial/math_tools.cpp Path_Planning/Polynomial/posToStatePath.cpp Path_Planning/Polynomial/path_planner.cpp)
+
+set(VISION Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
+
+# Building the main executable
+add_executable(V_PP  ${VISION} ${MUELLER}  V_PP.cpp)
+
+# Building the main library
+add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp)
+
+
 #add_library(CycloneVision MODULE Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
-add_library(CycloneVision MODULE Path_Planning/Mueller/cvxgen/solver.c Vision/CircleBoard.cpp ${CVXGEN}/ldl.c ${CVXGEN}/matrix_support.c ${CVXGEN}/util.c V_PP.cpp Path_Planning/path_planner.cpp Path_Planning/Mueller/path_planner.cpp Vision/Detect_Markers.cpp V_PP.h)
+#add_library(CycloneVision MODULE Path_Planning/Mueller/cvxgen/solver.c Vision/CircleBoard.cpp ${CVXGEN}/ldl.c ${CVXGEN}/matrix_support.c ${CVXGEN}/util.c V_PP.cpp Path_Planning/path_planner.cpp Path_Planning/Mueller/path_planner.cpp Vision/Detect_Markers.cpp V_PP.h)
 #add_executable(WebcamTest webcam_test.cpp)
 
 #target_link_libraries(GenerateMarker ${OpenCV_LIBS})
 #target_link_libraries(DetectMarker ${OpenCV_LIBS})
 #target_link_libraries(CalibrateCamera ${OpenCV_LIBS})
 #target_link_libraries(CreateCalibration ${OpenCV_LIBS})
-#target_link_libraries(CycloneVision ${OpenCV_LIBS})
 target_link_libraries(CycloneVision ${OpenCV_LIBS})
 target_link_libraries(V_PP ${OpenCV_LIBS})
 #target_link_libraries(WebcamTest ${OpenCV_LIBS})
 
 
-#add_dependencies(CycloneVision opencv)
 add_dependencies(CycloneVision opencv)

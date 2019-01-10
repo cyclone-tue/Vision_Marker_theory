@@ -3,6 +3,11 @@
 
 #include <Eigen/Dense>
 #include <iostream>
+#include "../../constants.h"
+
+extern "C" {
+    #include "cvxgen/solver.h"
+}
 
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
@@ -51,11 +56,17 @@ class path_planner{
         */
         static int run(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
     private:
-        static void stateToPosDers(VectorXd currentState, Vector4d currentTorque, Vector3d& beginX, Vector3d& beginY, Vector3d& beginZ);
         static void jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
         static void getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d& endX, Vector3d& endY, Vector3d& endZ);
         static void load_default_data(Vector3d beginState, Vector3d endState);
-};
+        static MatrixXd getConstraints(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat);
+        static Matrix3d get_before_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat);
+        static Matrix3d get_after_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat);
+        static Matrix3d stateToPosDers(VectorXd currentState, Vector4d currentTorque);
+        static void getPathSegment(VectorXd currentState, MatrixXd constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static MatrixXd concatenate(MatrixXd& one, MatrixXd& two);
+        static VectorXd concatenateVec(VectorXd& one, VectorXd& two);
+    };
 /*
 jiroe MatrixXd arrayToEigen(double* array, int rows, int columns);
 */

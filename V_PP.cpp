@@ -64,9 +64,9 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     }
 
     double* db_p;  // stands for ...
-    MatrixXd path;
-    VectorXd timeDiffs;
-    MatrixXd torques;
+    MatrixXd path(0,12);
+    VectorXd timeDiffs(0);
+    MatrixXd torques(0,4);
 
     *pathLength = runFrame(visualize, currentState, currentTorque, path, timeDiffs, torques);
 
@@ -77,6 +77,7 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
         MatrixXd outputInfo(*pathLength, 12 + 1 + 4);
         outputInfo << path, timeDiffs, torques;
 
+        cout << "path,timeDiffs,torques, from output_to_py" << endl;
         cout << outputInfo << endl;
 
         //copy path to output array
@@ -89,6 +90,9 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     return nullptr;
 }
 
+/*
+path contains x times 12 elements.
+ */
 void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
     Mat frame;
