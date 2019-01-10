@@ -10,16 +10,16 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
     Vector3d hoopTransVec;
     Matrix3d hoopRotMat;
 
-    cout << "run vision" << endl;
+    //cout << "run vision" << endl;
     bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat, visualize);
 
 
     if(foundHoop == true){
-        cout << "run path planner" << endl;
+        //cout << "run path planner" << endl;
         pathLength = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
     }
     else{
-        cout << "    no hoop was found" << endl;
+        //cout << "    no hoop was found" << endl;
     }
 
     return pathLength;
@@ -103,12 +103,12 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
             cvPoints.push_back(Point3d(points(row, 0), points(row, 1), points(row, 2)));
         }
 
-        cout << cvPoints << endl;
+        //cout << cvPoints << endl;
 
         vector<Point2d> imagePoints;
         vision::projectPointsOntoCam(cvPoints, currentState, imagePoints);
 
-        cout << imagePoints << endl;
+        //cout << imagePoints << endl;
 
 
         for (int j = 0; j < imagePoints.size() - 1; j++) {
