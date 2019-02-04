@@ -1,11 +1,11 @@
-/* Produced by CVXGEN, 2019-01-17 08:59:28 -0500.  */
-/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen_old.com. */
+/* Produced by CVXGEN, 2019-02-04 10:09:08 -0500.  */
+/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com. */
 /* The code in this file is Copyright (C) 2006-2017 Jacob Mattingley. */
 /* CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial */
 /* applications without prior written permission from Jacob Mattingley. */
 
 /* Filename: csolve.c. */
-/* Description: mex-able file for running cvxgen_old solver. */
+/* Description: mex-able file for running cvxgen solver. */
 #include "mex.h"
 #include "solver.h"
 Vars vars;
@@ -27,8 +27,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   const char *status_names[] = {"optval", "gap", "steps", "converged"};
   mwSize dims1x1of1[1] = {1};
   mwSize dims[1];
-  const char *var_names[] = {"jerk_0", "jerk_1", "jerk_2", "jerk_3", "jerk_4", "jerk_5", "jerk_6", "jerk_7", "jerk_8", "jerk_9", "jerk_10", "jerk_11", "jerk_12", "jerk_13", "jerk_14", "jerk_15", "jerk_16", "jerk_17", "jerk_18", "jerk_19", "jerk_20", "jerk_21", "jerk_22", "jerk_23", "jerk_24", "jerk_25", "jerk_26", "jerk_27", "jerk_28", "jerk_29", "jerk_30", "jerk_31", "jerk_32", "jerk_33", "jerk_34", "jerk_35", "jerk_36", "jerk_37", "jerk_38", "jerk_39", "jerk_40", "jerk_41", "jerk_42", "jerk_43", "jerk_44", "jerk_45", "jerk_46", "jerk_47", "jerk_48", "jerk_49", "jerk_50", "z_0", "z_1", "z_2", "z_3", "z_4", "z_5", "z_6", "z_7", "z_8", "z_9", "z_10", "z_11", "z_12", "z_13", "z_14", "z_15", "z_16", "z_17", "z_18", "z_19", "z_20", "z_21", "z_22", "z_23", "z_24", "z_25", "z_26", "z_27", "z_28", "z_29", "z_30", "z_31", "z_32", "z_33", "z_34", "z_35", "z_36", "z_37", "z_38", "z_39", "z_40", "z_41", "z_42", "z_43", "z_44", "z_45", "z_46", "z_47", "z_48", "z_49", "z_50", "jerk", "z"};
-  const int num_var_names = 104;
+  const char *var_names[] = {"jerk_0", "jerk_1", "jerk_2", "jerk_3", "jerk_4", "jerk_5", "jerk_6", "jerk_7", "jerk_8", "jerk_9", "jerk_10", "jerk_11", "jerk_12", "jerk_13", "jerk_14", "jerk_15", "jerk_16", "jerk_17", "jerk_18", "jerk_19", "jerk_20", "jerk_21", "jerk_22", "jerk_23", "jerk_24", "jerk_25", "jerk_26", "jerk_27", "jerk_28", "jerk_29", "jerk_30", "jerk_31", "jerk_32", "jerk_33", "jerk_34", "jerk_35", "jerk_36", "jerk_37", "jerk_38", "jerk_39", "jerk_40", "jerk_41", "jerk_42", "jerk_43", "jerk_44", "jerk_45", "jerk_46", "jerk_47", "z_0", "z_1", "z_2", "z_3", "z_4", "z_5", "z_6", "z_7", "z_8", "z_9", "z_10", "z_11", "z_12", "z_13", "z_14", "z_15", "z_16", "z_17", "z_18", "z_19", "z_20", "z_21", "z_22", "z_23", "z_24", "z_25", "z_26", "z_27", "z_28", "z_29", "z_30", "z_31", "z_32", "z_33", "z_34", "z_35", "z_36", "z_37", "z_38", "z_39", "z_40", "z_41", "z_42", "z_43", "z_44", "z_45", "z_46", "z_47", "z_48", "jerk", "z"};
+  const int num_var_names = 99;
   /* Avoid compiler warnings of unused variables by using a dummy assignment. */
   warned_diags = j = 0;
   extra_solves = 0;
@@ -244,35 +244,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
   }
   this_var_errors = 0;
-  xm = mxGetField(prhs[0], 0, "max_vel");
-  if (xm == NULL) {
-    printf("could not find params.max_vel.\n");
-  } else {
-    if (!((mxGetM(xm) == 1) && (mxGetN(xm) == 1))) {
-      printf("max_vel must be size (1,1), not (%d,%d).\n", mxGetM(xm), mxGetN(xm));
-      this_var_errors++;
-    }
-    if (mxIsComplex(xm)) {
-      printf("parameter max_vel must be real.\n");
-      this_var_errors++;
-    }
-    if (!mxIsClass(xm, "double")) {
-      printf("parameter max_vel must be a full matrix of doubles.\n");
-      this_var_errors++;
-    }
-    if (mxIsSparse(xm)) {
-      printf("parameter max_vel must be a full matrix.\n");
-      this_var_errors++;
-    }
-    if (this_var_errors == 0) {
-      dest = params.max_vel;
-      src = mxGetPr(xm);
-      for (i = 0; i < 1; i++)
-        *dest++ = *src++;
-      valid_vars++;
-    }
-  }
-  this_var_errors = 0;
   xm = mxGetField(prhs[0], 0, "min_acc");
   if (xm == NULL) {
     printf("could not find params.min_acc.\n");
@@ -331,35 +302,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
   }
   this_var_errors = 0;
-  xm = mxGetField(prhs[0], 0, "min_vel");
-  if (xm == NULL) {
-    printf("could not find params.min_vel.\n");
-  } else {
-    if (!((mxGetM(xm) == 1) && (mxGetN(xm) == 1))) {
-      printf("min_vel must be size (1,1), not (%d,%d).\n", mxGetM(xm), mxGetN(xm));
-      this_var_errors++;
-    }
-    if (mxIsComplex(xm)) {
-      printf("parameter min_vel must be real.\n");
-      this_var_errors++;
-    }
-    if (!mxIsClass(xm, "double")) {
-      printf("parameter min_vel must be a full matrix of doubles.\n");
-      this_var_errors++;
-    }
-    if (mxIsSparse(xm)) {
-      printf("parameter min_vel must be a full matrix.\n");
-      this_var_errors++;
-    }
-    if (this_var_errors == 0) {
-      dest = params.min_vel;
-      src = mxGetPr(xm);
-      for (i = 0; i < 1; i++)
-        *dest++ = *src++;
-      valid_vars++;
-    }
-  }
-  this_var_errors = 0;
   xm = mxGetField(prhs[0], 0, "selectAcceleration");
   if (xm == NULL) {
     printf("could not find params.selectAcceleration.\n");
@@ -388,37 +330,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       valid_vars++;
     }
   }
-  this_var_errors = 0;
-  xm = mxGetField(prhs[0], 0, "selectVelocity");
-  if (xm == NULL) {
-    printf("could not find params.selectVelocity.\n");
-  } else {
-    if (!((mxGetM(xm) == 1) && (mxGetN(xm) == 3))) {
-      printf("selectVelocity must be size (1,3), not (%d,%d).\n", mxGetM(xm), mxGetN(xm));
-      this_var_errors++;
-    }
-    if (mxIsComplex(xm)) {
-      printf("parameter selectVelocity must be real.\n");
-      this_var_errors++;
-    }
-    if (!mxIsClass(xm, "double")) {
-      printf("parameter selectVelocity must be a full matrix of doubles.\n");
-      this_var_errors++;
-    }
-    if (mxIsSparse(xm)) {
-      printf("parameter selectVelocity must be a full matrix.\n");
-      this_var_errors++;
-    }
-    if (this_var_errors == 0) {
-      dest = params.selectVelocity;
-      src = mxGetPr(xm);
-      for (i = 0; i < 3; i++)
-        *dest++ = *src++;
-      valid_vars++;
-    }
-  }
-  if (valid_vars != 12) {
-    printf("Error: %d parameters are invalid.\n", 12 - valid_vars);
+  if (valid_vars != 9) {
+    printf("Error: %d parameters are invalid.\n", 9 - valid_vars);
     mexErrMsgTxt("invalid parameters found.");
   }
   if (prepare_for_c) {
@@ -427,12 +340,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       printf("  params.A[%d] = %.6g;\n", i, params.A[i]);
     for (i = 0; i < 3; i++)
       printf("  params.B[%d] = %.6g;\n", i, params.B[i]);
-    for (i = 0; i < 1; i++)
-      printf("  params.min_vel[%d] = %.6g;\n", i, params.min_vel[i]);
-    for (i = 0; i < 3; i++)
-      printf("  params.selectVelocity[%d] = %.6g;\n", i, params.selectVelocity[i]);
-    for (i = 0; i < 1; i++)
-      printf("  params.max_vel[%d] = %.6g;\n", i, params.max_vel[i]);
     for (i = 0; i < 1; i++)
       printf("  params.min_acc[%d] = %.6g;\n", i, params.min_acc[i]);
     for (i = 0; i < 3; i++)
@@ -471,10 +378,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   /* Extract variable values. */
   plhs[0] = mxCreateStructArray(1, dims1x1of1, num_var_names, var_names);
   /* Create cell arrays for indexed variables. */
-  dims[0] = 50;
+  dims[0] = 47;
   cell = mxCreateCellArray(1, dims);
   mxSetField(plhs[0], 0, "jerk", cell);
-  dims[0] = 50;
+  dims[0] = 48;
   cell = mxCreateCellArray(1, dims);
   mxSetField(plhs[0], 0, "z", cell);
   xm = mxCreateDoubleMatrix(1, 1, mxREAL);
@@ -1044,42 +951,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   dest = mxGetPr(xm);
   dest_cell = mxGetPr(xm_cell);
   src = vars.jerk_47;
-  for (i = 0; i < 1; i++) {
-    *dest++ = *src;
-    *dest_cell++ = *src++;
-  }
-  xm = mxCreateDoubleMatrix(1, 1, mxREAL);
-  mxSetField(plhs[0], 0, "jerk_48", xm);
-  xm_cell = mxCreateDoubleMatrix(1, 1, mxREAL);
-  cell = mxGetField(plhs[0], 0, "jerk");
-  mxSetCell(cell, 47, xm_cell);
-  dest = mxGetPr(xm);
-  dest_cell = mxGetPr(xm_cell);
-  src = vars.jerk_48;
-  for (i = 0; i < 1; i++) {
-    *dest++ = *src;
-    *dest_cell++ = *src++;
-  }
-  xm = mxCreateDoubleMatrix(1, 1, mxREAL);
-  mxSetField(plhs[0], 0, "jerk_49", xm);
-  xm_cell = mxCreateDoubleMatrix(1, 1, mxREAL);
-  cell = mxGetField(plhs[0], 0, "jerk");
-  mxSetCell(cell, 48, xm_cell);
-  dest = mxGetPr(xm);
-  dest_cell = mxGetPr(xm_cell);
-  src = vars.jerk_49;
-  for (i = 0; i < 1; i++) {
-    *dest++ = *src;
-    *dest_cell++ = *src++;
-  }
-  xm = mxCreateDoubleMatrix(1, 1, mxREAL);
-  mxSetField(plhs[0], 0, "jerk_50", xm);
-  xm_cell = mxCreateDoubleMatrix(1, 1, mxREAL);
-  cell = mxGetField(plhs[0], 0, "jerk");
-  mxSetCell(cell, 49, xm_cell);
-  dest = mxGetPr(xm);
-  dest_cell = mxGetPr(xm_cell);
-  src = vars.jerk_50;
   for (i = 0; i < 1; i++) {
     *dest++ = *src;
     *dest_cell++ = *src++;
@@ -1663,30 +1534,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   dest = mxGetPr(xm);
   dest_cell = mxGetPr(xm_cell);
   src = vars.z_48;
-  for (i = 0; i < 3; i++) {
-    *dest++ = *src;
-    *dest_cell++ = *src++;
-  }
-  xm = mxCreateDoubleMatrix(3, 1, mxREAL);
-  mxSetField(plhs[0], 0, "z_49", xm);
-  xm_cell = mxCreateDoubleMatrix(3, 1, mxREAL);
-  cell = mxGetField(plhs[0], 0, "z");
-  mxSetCell(cell, 48, xm_cell);
-  dest = mxGetPr(xm);
-  dest_cell = mxGetPr(xm_cell);
-  src = vars.z_49;
-  for (i = 0; i < 3; i++) {
-    *dest++ = *src;
-    *dest_cell++ = *src++;
-  }
-  xm = mxCreateDoubleMatrix(3, 1, mxREAL);
-  mxSetField(plhs[0], 0, "z_50", xm);
-  xm_cell = mxCreateDoubleMatrix(3, 1, mxREAL);
-  cell = mxGetField(plhs[0], 0, "z");
-  mxSetCell(cell, 49, xm_cell);
-  dest = mxGetPr(xm);
-  dest_cell = mxGetPr(xm_cell);
-  src = vars.z_50;
   for (i = 0; i < 3; i++) {
     *dest++ = *src;
     *dest_cell++ = *src++;

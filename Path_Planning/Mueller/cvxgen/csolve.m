@@ -4,7 +4,7 @@
 %
 % solves the convex optimization problem
 %
-%   minimize(square(jerk_0) + square(jerk_1) + square(jerk_2) + square(jerk_3) + square(jerk_4) + square(jerk_5) + square(jerk_6) + square(jerk_7) + square(jerk_8) + square(jerk_9) + square(jerk_10) + square(jerk_11) + square(jerk_12) + square(jerk_13) + square(jerk_14) + square(jerk_15) + square(jerk_16) + square(jerk_17) + square(jerk_18) + square(jerk_19) + square(jerk_20) + square(jerk_21) + square(jerk_22) + square(jerk_23) + square(jerk_24) + square(jerk_25) + square(jerk_26) + square(jerk_27) + square(jerk_28) + square(jerk_29) + square(jerk_30) + square(jerk_31) + square(jerk_32) + square(jerk_33) + square(jerk_34) + square(jerk_35) + square(jerk_36) + square(jerk_37) + square(jerk_38) + square(jerk_39) + square(jerk_40) + square(jerk_41) + square(jerk_42) + square(jerk_43) + square(jerk_44) + square(jerk_45) + square(jerk_46) + square(jerk_47) + square(jerk_48) + square(jerk_49) + square(jerk_50))
+%   minimize(square(jerk_0) + square(jerk_1) + square(jerk_2) + square(jerk_3) + square(jerk_4) + square(jerk_5) + square(jerk_6) + square(jerk_7) + square(jerk_8) + square(jerk_9) + square(jerk_10) + square(jerk_11) + square(jerk_12) + square(jerk_13) + square(jerk_14) + square(jerk_15) + square(jerk_16) + square(jerk_17) + square(jerk_18) + square(jerk_19) + square(jerk_20) + square(jerk_21) + square(jerk_22) + square(jerk_23) + square(jerk_24) + square(jerk_25) + square(jerk_26) + square(jerk_27) + square(jerk_28) + square(jerk_29) + square(jerk_30) + square(jerk_31) + square(jerk_32) + square(jerk_33) + square(jerk_34) + square(jerk_35) + square(jerk_36) + square(jerk_37) + square(jerk_38) + square(jerk_39) + square(jerk_40) + square(jerk_41) + square(jerk_42) + square(jerk_43) + square(jerk_44) + square(jerk_45) + square(jerk_46) + square(jerk_47))
 %   subject to
 %     z_1 == A*z_0 + B*jerk_0
 %     z_2 == A*z_1 + B*jerk_1
@@ -54,110 +54,6 @@
 %     z_46 == A*z_45 + B*jerk_45
 %     z_47 == A*z_46 + B*jerk_46
 %     z_48 == A*z_47 + B*jerk_47
-%     z_49 == A*z_48 + B*jerk_48
-%     z_50 == A*z_49 + B*jerk_49
-%     min_vel <= selectVelocity*z_0
-%     min_vel <= selectVelocity*z_1
-%     min_vel <= selectVelocity*z_2
-%     min_vel <= selectVelocity*z_3
-%     min_vel <= selectVelocity*z_4
-%     min_vel <= selectVelocity*z_5
-%     min_vel <= selectVelocity*z_6
-%     min_vel <= selectVelocity*z_7
-%     min_vel <= selectVelocity*z_8
-%     min_vel <= selectVelocity*z_9
-%     min_vel <= selectVelocity*z_10
-%     min_vel <= selectVelocity*z_11
-%     min_vel <= selectVelocity*z_12
-%     min_vel <= selectVelocity*z_13
-%     min_vel <= selectVelocity*z_14
-%     min_vel <= selectVelocity*z_15
-%     min_vel <= selectVelocity*z_16
-%     min_vel <= selectVelocity*z_17
-%     min_vel <= selectVelocity*z_18
-%     min_vel <= selectVelocity*z_19
-%     min_vel <= selectVelocity*z_20
-%     min_vel <= selectVelocity*z_21
-%     min_vel <= selectVelocity*z_22
-%     min_vel <= selectVelocity*z_23
-%     min_vel <= selectVelocity*z_24
-%     min_vel <= selectVelocity*z_25
-%     min_vel <= selectVelocity*z_26
-%     min_vel <= selectVelocity*z_27
-%     min_vel <= selectVelocity*z_28
-%     min_vel <= selectVelocity*z_29
-%     min_vel <= selectVelocity*z_30
-%     min_vel <= selectVelocity*z_31
-%     min_vel <= selectVelocity*z_32
-%     min_vel <= selectVelocity*z_33
-%     min_vel <= selectVelocity*z_34
-%     min_vel <= selectVelocity*z_35
-%     min_vel <= selectVelocity*z_36
-%     min_vel <= selectVelocity*z_37
-%     min_vel <= selectVelocity*z_38
-%     min_vel <= selectVelocity*z_39
-%     min_vel <= selectVelocity*z_40
-%     min_vel <= selectVelocity*z_41
-%     min_vel <= selectVelocity*z_42
-%     min_vel <= selectVelocity*z_43
-%     min_vel <= selectVelocity*z_44
-%     min_vel <= selectVelocity*z_45
-%     min_vel <= selectVelocity*z_46
-%     min_vel <= selectVelocity*z_47
-%     min_vel <= selectVelocity*z_48
-%     min_vel <= selectVelocity*z_49
-%     min_vel <= selectVelocity*z_50
-%     selectVelocity*z_0 <= max_vel
-%     selectVelocity*z_1 <= max_vel
-%     selectVelocity*z_2 <= max_vel
-%     selectVelocity*z_3 <= max_vel
-%     selectVelocity*z_4 <= max_vel
-%     selectVelocity*z_5 <= max_vel
-%     selectVelocity*z_6 <= max_vel
-%     selectVelocity*z_7 <= max_vel
-%     selectVelocity*z_8 <= max_vel
-%     selectVelocity*z_9 <= max_vel
-%     selectVelocity*z_10 <= max_vel
-%     selectVelocity*z_11 <= max_vel
-%     selectVelocity*z_12 <= max_vel
-%     selectVelocity*z_13 <= max_vel
-%     selectVelocity*z_14 <= max_vel
-%     selectVelocity*z_15 <= max_vel
-%     selectVelocity*z_16 <= max_vel
-%     selectVelocity*z_17 <= max_vel
-%     selectVelocity*z_18 <= max_vel
-%     selectVelocity*z_19 <= max_vel
-%     selectVelocity*z_20 <= max_vel
-%     selectVelocity*z_21 <= max_vel
-%     selectVelocity*z_22 <= max_vel
-%     selectVelocity*z_23 <= max_vel
-%     selectVelocity*z_24 <= max_vel
-%     selectVelocity*z_25 <= max_vel
-%     selectVelocity*z_26 <= max_vel
-%     selectVelocity*z_27 <= max_vel
-%     selectVelocity*z_28 <= max_vel
-%     selectVelocity*z_29 <= max_vel
-%     selectVelocity*z_30 <= max_vel
-%     selectVelocity*z_31 <= max_vel
-%     selectVelocity*z_32 <= max_vel
-%     selectVelocity*z_33 <= max_vel
-%     selectVelocity*z_34 <= max_vel
-%     selectVelocity*z_35 <= max_vel
-%     selectVelocity*z_36 <= max_vel
-%     selectVelocity*z_37 <= max_vel
-%     selectVelocity*z_38 <= max_vel
-%     selectVelocity*z_39 <= max_vel
-%     selectVelocity*z_40 <= max_vel
-%     selectVelocity*z_41 <= max_vel
-%     selectVelocity*z_42 <= max_vel
-%     selectVelocity*z_43 <= max_vel
-%     selectVelocity*z_44 <= max_vel
-%     selectVelocity*z_45 <= max_vel
-%     selectVelocity*z_46 <= max_vel
-%     selectVelocity*z_47 <= max_vel
-%     selectVelocity*z_48 <= max_vel
-%     selectVelocity*z_49 <= max_vel
-%     selectVelocity*z_50 <= max_vel
 %     min_acc <= selectAcceleration*z_0
 %     min_acc <= selectAcceleration*z_1
 %     min_acc <= selectAcceleration*z_2
@@ -207,8 +103,6 @@
 %     min_acc <= selectAcceleration*z_46
 %     min_acc <= selectAcceleration*z_47
 %     min_acc <= selectAcceleration*z_48
-%     min_acc <= selectAcceleration*z_49
-%     min_acc <= selectAcceleration*z_50
 %     selectAcceleration*z_0 <= max_acc
 %     selectAcceleration*z_1 <= max_acc
 %     selectAcceleration*z_2 <= max_acc
@@ -258,8 +152,6 @@
 %     selectAcceleration*z_46 <= max_acc
 %     selectAcceleration*z_47 <= max_acc
 %     selectAcceleration*z_48 <= max_acc
-%     selectAcceleration*z_49 <= max_acc
-%     selectAcceleration*z_50 <= max_acc
 %     min_jerk <= jerk_0
 %     min_jerk <= jerk_1
 %     min_jerk <= jerk_2
@@ -308,9 +200,6 @@
 %     min_jerk <= jerk_45
 %     min_jerk <= jerk_46
 %     min_jerk <= jerk_47
-%     min_jerk <= jerk_48
-%     min_jerk <= jerk_49
-%     min_jerk <= jerk_50
 %     jerk_0 <= max_jerk
 %     jerk_1 <= max_jerk
 %     jerk_2 <= max_jerk
@@ -359,11 +248,8 @@
 %     jerk_45 <= max_jerk
 %     jerk_46 <= max_jerk
 %     jerk_47 <= max_jerk
-%     jerk_48 <= max_jerk
-%     jerk_49 <= max_jerk
-%     jerk_50 <= max_jerk
 %     z_0 == initial
-%     z_50 == final
+%     z_48 == final
 %
 % with variables
 %   jerk_0   1 x 1
@@ -414,9 +300,6 @@
 %  jerk_45   1 x 1
 %  jerk_46   1 x 1
 %  jerk_47   1 x 1
-%  jerk_48   1 x 1
-%  jerk_49   1 x 1
-%  jerk_50   1 x 1
 %      z_0   3 x 1
 %      z_1   3 x 1
 %      z_2   3 x 1
@@ -466,8 +349,6 @@
 %     z_46   3 x 1
 %     z_47   3 x 1
 %     z_48   3 x 1
-%     z_49   3 x 1
-%     z_50   3 x 1
 %
 % and parameters
 %        A   3 x 3
@@ -476,12 +357,9 @@
 %  initial   3 x 1
 %  max_acc   1 x 1
 % max_jerk   1 x 1
-%  max_vel   1 x 1
 %  min_acc   1 x 1
 % min_jerk   1 x 1
-%  min_vel   1 x 1
 % selectAcceleration   1 x 3
-% selectVelocity   1 x 3
 %
 % Note:
 %   - Check status.converged, which will be 1 if optimization succeeded.
@@ -490,9 +368,9 @@
 %   - To change iterations, use settings.max_iters = 20.
 %   - You may wish to compare with cvxsolve to check the solver is correct.
 %
-% Specify params.A, ..., params.selectVelocity, then run
+% Specify params.A, ..., params.selectAcceleration, then run
 %   [vars, status] = csolve(params, settings)
-% Produced by CVXGEN, 2019-01-17 08:59:28 -0500.
+% Produced by CVXGEN, 2019-02-04 10:09:08 -0500.
 % CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com.
 % The code in this file is Copyright (C) 2006-2017 Jacob Mattingley.
 % CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial

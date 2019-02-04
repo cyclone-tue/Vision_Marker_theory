@@ -1,4 +1,4 @@
-# Produced by CVXGEN, 2019-01-17 08:59:29 -0500.
+# Produced by CVXGEN, 2019-02-04 10:09:10 -0500.
 # CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com.
 # The code in this file is Copyright (C) 2006-2017 Jacob Mattingley.
 # CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial
@@ -12,7 +12,7 @@
 # from paper: k, A, B, z, N
 
 dimensions
-  N = 50   # 0 <= k <= maxIter
+  N = 48   # 0 <= k <= maxIter
 end
 
 parameters
@@ -22,8 +22,8 @@ parameters
   selectAcceleration(1, 3)  # [0, 0, 1]
   initial(3, 1)             # z[k=0]
   final(3, 1)               # z[k=N]
-  min_vel # not in paper
-  max_vel # not in paper
+  # min_vel # not in paper
+  # max_vel # not in paper
   min_acc
   max_acc
   min_jerk
@@ -31,20 +31,20 @@ parameters
 end
 
 variables
-  jerk[k], k = 0..N
+  jerk[k], k = 0..47
   z[k](3,1), k = 0..N
 end
 
 minimize
-  sum[k=0..N](square(jerk[k]))
+  sum[k=0..47](square(jerk[k]))
 end
 
 constraints
-  z[k+1] == A*z[k] + B*jerk[k], k = 0..N-1
+  z[k+1] == A*z[k] + B*jerk[k], k = 0..47
 
-  min_vel <= selectVelocity*z[k] <= max_vel, k = 0..N        # not in paper
+  # min_vel <= selectVelocity*z[k] <= max_vel, k = 0..N        # not in paper
   min_acc <= selectAcceleration*z[k] <= max_acc, k = 0..N
-  min_jerk <= jerk[k] <= max_jerk, k = 0..N
+  min_jerk <= jerk[k] <= max_jerk, k = 0..47
 
   # Constraints of first and last elements of z:
   z[0] == initial

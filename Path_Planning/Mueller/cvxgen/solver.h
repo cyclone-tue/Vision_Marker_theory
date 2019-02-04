@@ -1,5 +1,5 @@
-/* Produced by CVXGEN, 2019-01-17 08:59:57 -0500.  */
-/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen_old.com. */
+/* Produced by CVXGEN, 2019-02-04 10:09:30 -0500.  */
+/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com. */
 /* The code in this file is Copyright (C) 2006-2017 Jacob Mattingley. */
 /* CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial */
 /* applications without prior written permission from Jacob Mattingley. */
@@ -30,9 +30,6 @@
 typedef struct Params_t {
   double A[9];
   double B[3];
-  double min_vel[1];
-  double selectVelocity[3];
-  double max_vel[1];
   double min_acc[1];
   double selectAcceleration[3];
   double max_acc[1];
@@ -90,9 +87,6 @@ typedef struct Vars_t {
   double *jerk_45; /* 1 rows. */
   double *jerk_46; /* 1 rows. */
   double *jerk_47; /* 1 rows. */
-  double *jerk_48; /* 1 rows. */
-  double *jerk_49; /* 1 rows. */
-  double *jerk_50; /* 1 rows. */
   double *z_0; /* 3 rows. */
   double *z_1; /* 3 rows. */
   double *z_2; /* 3 rows. */
@@ -142,31 +136,29 @@ typedef struct Vars_t {
   double *z_46; /* 3 rows. */
   double *z_47; /* 3 rows. */
   double *z_48; /* 3 rows. */
-  double *z_49; /* 3 rows. */
-  double *z_50; /* 3 rows. */
-  double *jerk[51];
-  double *z[51];
+  double *jerk[48];
+  double *z[49];
 } Vars;
 typedef struct Workspace_t {
-  double h[306];
-  double s_inv[306];
-  double s_inv_z[306];
-  double b[156];
-  double q[204];
-  double rhs[972];
-  double x[972];
+  double h[194];
+  double s_inv[194];
+  double s_inv_z[194];
+  double b[150];
+  double q[195];
+  double rhs[733];
+  double x[733];
   double *s;
   double *z;
   double *y;
-  double lhs_aff[972];
-  double lhs_cc[972];
-  double buffer[972];
-  double buffer2[972];
-  double KKT[2439];
-  double L[2229];
-  double d[972];
-  double v[972];
-  double d_inv[972];
+  double lhs_aff[733];
+  double lhs_cc[733];
+  double buffer[733];
+  double buffer2[733];
+  double KKT[1746];
+  double L[1745];
+  double d[733];
+  double v[733];
+  double d_inv[733];
   double gap;
   double optval;
   double ineq_resid_squared;

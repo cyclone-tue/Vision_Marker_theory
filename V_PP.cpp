@@ -130,6 +130,33 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
 int main(){
 
+    VectorXd currentState(12);
+    currentState << 4,10,7, 0,0,0, 0,0,0, 0,0,0;
+
+    VectorXd currentTorque(4);
+    currentTorque << 0,0,0,0;
+
+    Vector3d hoopTransVec;
+    hoopTransVec << 10, 0, 0;
+
+    Matrix3d hoopRotMat;
+    hoopRotMat << 1,0,0, 0,1,0, 0,0,1;
+
+    MatrixXd path(0,12);
+    VectorXd timeDiffs(0);
+    MatrixXd torques(0,4);
+
+    int pathLength = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
+
+    MatrixXd outputInfo(pathLength, 12 + 1 + 4);
+    outputInfo << path, timeDiffs, torques;
+
+    writeDebug("path,timeDiffs,torques:\n", "log", false);
+    writeDebug(outputInfo, "log", false);
+
+    return 0;
+
+    /*
     setup("../laptop_calibration.txt");
 
 
@@ -144,8 +171,10 @@ int main(){
         db_p = output_to_py(currentState, currentTorque, pathLength, visualize);
     }
 
-    return 0;
+    return 0;*/
 }
+
+
 
 
 void writeDebug(String info, String destination, bool display){
