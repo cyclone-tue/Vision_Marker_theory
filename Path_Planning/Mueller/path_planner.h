@@ -5,6 +5,8 @@
 #include <iostream>
 #include "../../constants.h"
 
+#include "../../V_PP.h"
+
 extern "C" {
     #include "cvxgen/solver.h"
 }

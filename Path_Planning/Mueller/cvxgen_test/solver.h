@@ -1,5 +1,5 @@
 /* Produced by CVXGEN, 2019-01-17 08:59:57 -0500.  */
-/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen_old.com. */
+/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com. */
 /* The code in this file is Copyright (C) 2006-2017 Jacob Mattingley. */
 /* CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial */
 /* applications without prior written permission from Jacob Mattingley. */
@@ -232,7 +232,7 @@ void fillrhs_start(void);
 long solve(void);
 
 /* Function definitions in testsolver.c: */
-//int main(int argc, char **argv);
+int main(int argc, char **argv);
 void load_default_data(void);
 
 /* Function definitions in util.c: */

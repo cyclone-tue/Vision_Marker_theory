@@ -1,4 +1,4 @@
-/* Produced by CVXGEN, 2019-01-17 08:59:47 -0500.  */
+/* Produced by CVXGEN, 2018-11-20 15:26:12 -0500.  */
 /* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen_old.com. */
 /* The code in this file is Copyright (C) 2006-2017 Jacob Mattingley. */
 /* CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial */
@@ -158,9 +158,9 @@ void multbymA(double *lhs, double *rhs) {
   lhs[147] = -rhs[49]*(-params.B[0])-rhs[198]*(-params.A[0])-rhs[199]*(-params.A[3])-rhs[200]*(-params.A[6])-rhs[201]*(1);
   lhs[148] = -rhs[49]*(-params.B[1])-rhs[198]*(-params.A[1])-rhs[199]*(-params.A[4])-rhs[200]*(-params.A[7])-rhs[202]*(1);
   lhs[149] = -rhs[49]*(-params.B[2])-rhs[198]*(-params.A[2])-rhs[199]*(-params.A[5])-rhs[200]*(-params.A[8])-rhs[203]*(1);
-  lhs[150] = -rhs[51]*(1);
-  lhs[151] = -rhs[52]*(1);
-  lhs[152] = -rhs[53]*(1);
+  lhs[150] = -rhs[54]*(1);
+  lhs[151] = -rhs[55]*(1);
+  lhs[152] = -rhs[56]*(1);
   lhs[153] = -rhs[201]*(1);
   lhs[154] = -rhs[202]*(1);
   lhs[155] = -rhs[203]*(1);
@@ -217,12 +217,12 @@ void multbymAT(double *lhs, double *rhs) {
   lhs[48] = -rhs[144]*(-params.B[0])-rhs[145]*(-params.B[1])-rhs[146]*(-params.B[2]);
   lhs[49] = -rhs[147]*(-params.B[0])-rhs[148]*(-params.B[1])-rhs[149]*(-params.B[2]);
   lhs[50] = 0;
-  lhs[51] = -rhs[0]*(-params.A[0])-rhs[1]*(-params.A[1])-rhs[2]*(-params.A[2])-rhs[150]*(1);
-  lhs[52] = -rhs[0]*(-params.A[3])-rhs[1]*(-params.A[4])-rhs[2]*(-params.A[5])-rhs[151]*(1);
-  lhs[53] = -rhs[0]*(-params.A[6])-rhs[1]*(-params.A[7])-rhs[2]*(-params.A[8])-rhs[152]*(1);
-  lhs[54] = -rhs[0]*(1)-rhs[3]*(-params.A[0])-rhs[4]*(-params.A[1])-rhs[5]*(-params.A[2]);
-  lhs[55] = -rhs[1]*(1)-rhs[3]*(-params.A[3])-rhs[4]*(-params.A[4])-rhs[5]*(-params.A[5]);
-  lhs[56] = -rhs[2]*(1)-rhs[3]*(-params.A[6])-rhs[4]*(-params.A[7])-rhs[5]*(-params.A[8]);
+  lhs[51] = -rhs[0]*(-params.A[0])-rhs[1]*(-params.A[1])-rhs[2]*(-params.A[2]);
+  lhs[52] = -rhs[0]*(-params.A[3])-rhs[1]*(-params.A[4])-rhs[2]*(-params.A[5]);
+  lhs[53] = -rhs[0]*(-params.A[6])-rhs[1]*(-params.A[7])-rhs[2]*(-params.A[8]);
+  lhs[54] = -rhs[0]*(1)-rhs[3]*(-params.A[0])-rhs[4]*(-params.A[1])-rhs[5]*(-params.A[2])-rhs[150]*(1);
+  lhs[55] = -rhs[1]*(1)-rhs[3]*(-params.A[3])-rhs[4]*(-params.A[4])-rhs[5]*(-params.A[5])-rhs[151]*(1);
+  lhs[56] = -rhs[2]*(1)-rhs[3]*(-params.A[6])-rhs[4]*(-params.A[7])-rhs[5]*(-params.A[8])-rhs[152]*(1);
   lhs[57] = -rhs[3]*(1)-rhs[6]*(-params.A[0])-rhs[7]*(-params.A[1])-rhs[8]*(-params.A[2]);
   lhs[58] = -rhs[4]*(1)-rhs[6]*(-params.A[3])-rhs[7]*(-params.A[4])-rhs[8]*(-params.A[5]);
   lhs[59] = -rhs[5]*(1)-rhs[6]*(-params.A[6])-rhs[7]*(-params.A[7])-rhs[8]*(-params.A[8]);

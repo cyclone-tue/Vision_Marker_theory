@@ -98,31 +98,22 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
         // if at least one board marker detected
         if(valid > 0) {
+            writeDebug("\nboard found.\n", "log", false);
             foundMarker = true;
 
             aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvec, tvec, 0.1);
 
-            cout << rvec << endl;
-
-            rvec(0) = rvec(0);
-            rvec(1) = rvec(1);
-            rvec(2) = rvec(2);
-
-            cout << rvec << endl;
 
             double temp_val = rvec(2);
             rvec(2) = rvec(1);
             rvec(1) = rvec(0);
             rvec(0) = temp_val;
 
-            cout << rvec << endl;
 
             Mat rotMat;
             Rodrigues(rvec, rotMat);
             Mat invertBoard = (Mat_<double>(3,3) << -1,0,0, 0,1,0, 0,0,-1);
             rotMat = rotMat*invertBoard;
-            cout << "rotMat" << endl;
-            cout << rotMat << endl;
             //rotMat = rotMat.t();
 
 
@@ -137,7 +128,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
             cv2eigen(rotMat, rot_hoopFrameToCamFrame);
 
             Vector3d camPos_world = currentState.block<3,1>(0,0);
-            Matrix3d rot_camFrameToWorldFrame = anglesToRotMatXYZ(currentState(3), currentState(4), currentState(5));
+            Matrix3d rot_camFrameToWorldFrame = anglesToRotMatXYZ(currentState(6), currentState(7), currentState(8));
 
             Vector3d hoopPos_world = rot_camFrameToWorldFrame*hoopPos_camera + camPos_world;            // calculate the board position in world frame.
             Matrix3d rot_hoopFrameToWorldFrame = rot_camFrameToWorldFrame*rot_hoopFrameToCamFrame;    // calculate the rotation matrix from hoop frame to world frame.
@@ -178,7 +169,10 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
             hoopTransVec = hoopPos_world;
             hoopRotMat = rot_hoopFrameToWorldFrame;
-
+            writeDebug("hoopTransVec:\n", "log", false);
+            writeDebug(hoopTransVec, "log", false);
+            writeDebug("hoopRotMat:\n", "log", false);
+            writeDebug(hoopRotMat, "log" , false);
         }
     }
 
@@ -315,9 +309,15 @@ void vision::setupVariables(int camera, const char* calibrationFile){
 
 void vision::projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentState, vector<Point2d>& imagePoints){
 
-    Matrix3d rot_worldFrameToCamFrame = anglesToRotMatZYX(-currentState(6), -currentState(7), -currentState(8));
+    VectorXd temp(12);
+    temp << 0,0,0, 0,0,0, 0,0,0, 0,0,0;
+
+    Matrix3d rot_worldFrameToCamFrame = anglesToRotMatZYX(-temp(6), -temp(7), -temp(8));
+
+
     Matrix3d rot_camFrameToOddcamFrame;
     rot_camFrameToOddcamFrame << 0,1,0, 0,0,1, 1,0,0;
+
     Matrix3d rot_worldFrameToOddcamFrame = rot_camFrameToOddcamFrame*rot_worldFrameToCamFrame;
 
     Mat cvrot_worldFrameToOddcamFrame;
@@ -330,9 +330,9 @@ void vision::projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentSta
         newPoint.copyTo( cv::Mat(points[i], false) );
     }
 
-    cout << points << endl;
-
     projectPoints(points, Vec3d(0, 0, 0), Vec3d(0, 0, 0), cameraMatrix, distCoef, imagePoints);
+
+
     return;
 }
 

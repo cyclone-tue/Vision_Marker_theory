@@ -1,4 +1,4 @@
-/* Produced by CVXGEN, 2019-01-17 08:59:57 -0500.  */
+/* Produced by CVXGEN, 2018-11-20 15:26:18 -0500.  */
 /* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen_old.com. */
 /* The code in this file is Copyright (C) 2006-2017 Jacob Mattingley. */
 /* CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial */
@@ -163,7 +163,7 @@ typedef struct Workspace_t {
   double buffer[972];
   double buffer2[972];
   double KKT[2439];
-  double L[2229];
+  double L[2238];
   double d[972];
   double v[972];
   double d_inv[972];
@@ -195,25 +195,6 @@ extern Vars vars;
 extern Params params;
 extern Workspace work;
 extern Settings settings;
-/* Function definitions in ldl.c: */
-void ldl_solve(double *target, double *var);
-void ldl_factor(void);
-double check_factorization(void);
-void matrix_multiply(double *result, double *source);
-double check_residual(double *target, double *multiplicand);
-void fill_KKT(void);
-
-/* Function definitions in matrix_support.c: */
-void multbymA(double *lhs, double *rhs);
-void multbymAT(double *lhs, double *rhs);
-void multbymG(double *lhs, double *rhs);
-void multbymGT(double *lhs, double *rhs);
-void multbyP(double *lhs, double *rhs);
-void fillq(void);
-void fillh(void);
-void fillb(void);
-void pre_ops(void);
-
 /* Function definitions in solver.c: */
 double eval_gap(void);
 void set_defaults(void);
@@ -245,5 +226,24 @@ float ran1(long*idum, int reset);
 float randn_internal(long *idum, int reset);
 double randn(void);
 void reset_rand(void);
+
+/* Function definitions in ldl.c: */
+void ldl_solve(double *target, double *var);
+void ldl_factor(void);
+double check_factorization(void);
+void matrix_multiply(double *result, double *source);
+double check_residual(double *target, double *multiplicand);
+void fill_KKT(void);
+
+/* Function definitions in matrix_support.c: */
+void multbymA(double *lhs, double *rhs);
+void multbymAT(double *lhs, double *rhs);
+void multbymG(double *lhs, double *rhs);
+void multbymGT(double *lhs, double *rhs);
+void multbyP(double *lhs, double *rhs);
+void fillq(void);
+void fillh(void);
+void fillb(void);
+void pre_ops(void);
 
 #endif

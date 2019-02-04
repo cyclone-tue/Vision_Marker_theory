@@ -1,11 +1,11 @@
 /* Produced by CVXGEN, 2019-01-17 08:59:28 -0500.  */
-/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen_old.com. */
+/* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com. */
 /* The code in this file is Copyright (C) 2006-2017 Jacob Mattingley. */
 /* CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial */
 /* applications without prior written permission from Jacob Mattingley. */
 
 /* Filename: csolve.c. */
-/* Description: mex-able file for running cvxgen_old solver. */
+/* Description: mex-able file for running cvxgen solver. */
 #include "mex.h"
 #include "solver.h"
 Vars vars;

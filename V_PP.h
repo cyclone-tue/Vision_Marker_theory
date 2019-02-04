@@ -9,6 +9,7 @@
 #include <cmath>
 #include <math.h>
 #include <Eigen/Dense>
+#include <fstream>
 
 //PATH_PLANNER()
 //VISION()
@@ -26,6 +27,8 @@ using namespace Eigen;
 int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
 int main();
 void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
+void writeDebug(MatrixXd info, String destination, bool display);
+void writeDebug(String info, String destination, bool display);
 
 extern "C" {
     /*

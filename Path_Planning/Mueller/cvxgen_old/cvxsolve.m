@@ -1,4 +1,4 @@
-% Produced by CVXGEN, 2019-01-17 08:59:28 -0500.
+% Produced by CVXGEN, 2018-11-20 15:25:59 -0500.
 % CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com.
 % The code in this file is Copyright (C) 2006-2017 Jacob Mattingley.
 % CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial
@@ -482,7 +482,7 @@ cvx_begin
     jerk_48 <= max_jerk;
     jerk_49 <= max_jerk;
     jerk_50 <= max_jerk;
-    z_0 == initial;
+    z_1 == initial;
     z_50 == final;
 cvx_end
 vars.jerk_0 = jerk_0;

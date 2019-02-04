@@ -14,7 +14,10 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
 
 
     if(foundHoop == true){
+        writeDebug("\nstart path_planner.\n", "log", false);
+
         pathLength = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
+
     }
 
 
@@ -24,6 +27,8 @@ int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, Matr
 
 void setup(const char* camera_calibration_file){
     vision::setupVariables(0, camera_calibration_file);
+    writeDebug("setup done\n", "log", true);
+    return;
 }
 
 
@@ -73,8 +78,8 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
         MatrixXd outputInfo(*pathLength, 12 + 1 + 4);
         outputInfo << path, timeDiffs, torques;
 
-        cout << "path,timeDiffs,torques, from output_to_py" << endl;
-        cout << outputInfo << endl;
+        writeDebug("path,timeDiffs,torques:\n", "log", false);
+        writeDebug(outputInfo, "log", false);
 
         //copy path to output array
         double db_array[*pathLength][12 + 1 + 4];
@@ -97,13 +102,16 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
     if(displayPath) {
         MatrixXd points(path.rows(), path.cols());
 
+        writeDebug(path, "log", false);
+
         vector<Point3d> cvPoints;
         for (int row = 0; row < points.rows(); row++) {
-            cvPoints.push_back(Point3d(points(row, 0), points(row, 1), points(row, 2)));
+            cvPoints.push_back(Point3d(path(row, 0), path(row, 1), path(row, 2)));
         }
 
         vector<Point2d> imagePoints;
         vision::projectPointsOntoCam(cvPoints, currentState, imagePoints);
+
 
 
         for (int j = 0; j < imagePoints.size() - 1; j++) {
@@ -123,7 +131,7 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 int main(){
 
     setup("../laptop_calibration.txt");
-    cout << "setup done" << endl;
+
 
     double currentState [12] = {0,0,0, 0,0,0, 0,0,0, 0,0,0};
     double currentTorque [4] = {0,0,0,0};
@@ -138,5 +146,41 @@ int main(){
 
     return 0;
 }
+
+
+void writeDebug(String info, String destination, bool display){
+
+    if(display){
+        cout << info << endl;
+    }
+
+    if(destination == "log") {
+        ofstream file;
+        file.open ("log.txt",ios::app);
+        file << info;
+        file.close();
+    }
+
+    return;
+}
+
+void writeDebug(MatrixXd info, String destination, bool display){
+
+    if(display){
+        cout << info << endl;
+    }
+
+    if(destination == "log") {
+        ofstream file;
+        file.open ("log.txt",ios::app);
+        file << info << endl;
+        file.close();
+    }
+
+    return;
+}
+
+
+
 
 

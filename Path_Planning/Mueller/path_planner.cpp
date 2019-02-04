@@ -54,7 +54,8 @@ int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d ho
 
 
     MatrixXd allConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat);
-    cout << allConstraints << endl;
+    writeDebug("constraints:\n", "log", false);
+    writeDebug(allConstraints, "log", false);
 
     int waypoints = allConstraints.cols()/3 - 1;
     int totalLength = 0;
@@ -161,7 +162,7 @@ void path_planner::getPathSegment(VectorXd currentState, MatrixXd constraints, M
         pos(i, 1) = *vars.z[i];
         jerk(i, 1) = *vars.jerk[i];
     }
-
+    cout << "beginZ  " << beginZ << endl;
     load_default_data(beginZ, endZ);            // z
     long num_iters_z = solve();                   // in solver.c
     for(int i = 0; i <= 50; i++){
@@ -169,7 +170,8 @@ void path_planner::getPathSegment(VectorXd currentState, MatrixXd constraints, M
         jerk(i, 2) = *vars.jerk[i];
     }
 
-
+    cout << "pos  " << pos << endl;
+    cout << "jerk " << jerk << endl;
     jerkToPath(currentState, pos, jerk, path, timeDiffs, torques);
 }
 
@@ -352,6 +354,7 @@ void path_planner::jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, 
 
 void path_planner::load_default_data(Vector3d beginState, Vector3d endState) {
     double dt = timeInterval/number_of_points;
+
     params.A[0] = 1;
     params.A[1] = dt;
     params.A[2] = pow(dt,2)/2;
@@ -365,6 +368,10 @@ void path_planner::load_default_data(Vector3d beginState, Vector3d endState) {
     params.B[1] = pow(dt,2)/2;
     params.B[2] = dt;
 
+    cout << "params.A" << endl;
+    for(int i = 0; i <= 8; i++)
+        cout << params.A[i] << endl;
+
     params.selectVelocity[0] = 0;
     params.selectVelocity[1] = 1;
     params.selectVelocity[2] = 0;
@@ -372,12 +379,12 @@ void path_planner::load_default_data(Vector3d beginState, Vector3d endState) {
     params.selectAcceleration[1] = 0;
     params.selectAcceleration[2] = 1;
 
-    params.min_vel[0] = -1;                  // not in paper
-    params.max_vel[0] = 1;                   // not in paper
-    params.min_acc[0] = -1;
-    params.max_acc[0] = 1;
-    params.min_jerk[0] = -1;
-    params.max_jerk[0] = 1;
+    params.min_vel[0] = -10;                  // not in paper
+    params.max_vel[0] = 10;                   // not in paper
+    params.min_acc[0] = -1000;
+    params.max_acc[0] = 1000;
+    params.min_jerk[0] = -100000;
+    params.max_jerk[0] = 1000000;
 
     params.initial[0] = beginState[0];
     params.initial[1] = beginState[1];
