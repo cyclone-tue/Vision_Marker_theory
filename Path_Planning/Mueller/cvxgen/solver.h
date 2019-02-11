@@ -1,4 +1,4 @@
-/* Produced by CVXGEN, 2019-02-04 10:09:30 -0500.  */
+/* Produced by CVXGEN, 2019-02-11 08:42:13 -0500.  */
 /* CVXGEN is Copyright (C) 2006-2017 Jacob Mattingley, jem@cvxgen.com. */
 /* The code in this file is Copyright (C) 2006-2017 Jacob Mattingley. */
 /* CVXGEN, or solvers produced by CVXGEN, cannot be used for commercial */
@@ -28,13 +28,9 @@
 #define pm(A, m, n) printmatrix(#A, A, m, n, 1)
 #endif
 typedef struct Params_t {
+  double lambda[3];
   double A[9];
   double B[3];
-  double min_acc[1];
-  double selectAcceleration[3];
-  double max_acc[1];
-  double min_jerk[1];
-  double max_jerk[1];
   double initial[3];
   double final[3];
 } Params;
@@ -75,90 +71,102 @@ typedef struct Vars_t {
   double *jerk_33; /* 1 rows. */
   double *jerk_34; /* 1 rows. */
   double *jerk_35; /* 1 rows. */
-  double *jerk_36; /* 1 rows. */
-  double *jerk_37; /* 1 rows. */
-  double *jerk_38; /* 1 rows. */
-  double *jerk_39; /* 1 rows. */
-  double *jerk_40; /* 1 rows. */
-  double *jerk_41; /* 1 rows. */
-  double *jerk_42; /* 1 rows. */
-  double *jerk_43; /* 1 rows. */
-  double *jerk_44; /* 1 rows. */
-  double *jerk_45; /* 1 rows. */
-  double *jerk_46; /* 1 rows. */
-  double *jerk_47; /* 1 rows. */
-  double *z_0; /* 3 rows. */
-  double *z_1; /* 3 rows. */
-  double *z_2; /* 3 rows. */
-  double *z_3; /* 3 rows. */
-  double *z_4; /* 3 rows. */
-  double *z_5; /* 3 rows. */
-  double *z_6; /* 3 rows. */
-  double *z_7; /* 3 rows. */
-  double *z_8; /* 3 rows. */
-  double *z_9; /* 3 rows. */
-  double *z_10; /* 3 rows. */
-  double *z_11; /* 3 rows. */
-  double *z_12; /* 3 rows. */
-  double *z_13; /* 3 rows. */
-  double *z_14; /* 3 rows. */
-  double *z_15; /* 3 rows. */
-  double *z_16; /* 3 rows. */
-  double *z_17; /* 3 rows. */
-  double *z_18; /* 3 rows. */
-  double *z_19; /* 3 rows. */
-  double *z_20; /* 3 rows. */
-  double *z_21; /* 3 rows. */
-  double *z_22; /* 3 rows. */
-  double *z_23; /* 3 rows. */
-  double *z_24; /* 3 rows. */
-  double *z_25; /* 3 rows. */
-  double *z_26; /* 3 rows. */
-  double *z_27; /* 3 rows. */
-  double *z_28; /* 3 rows. */
-  double *z_29; /* 3 rows. */
-  double *z_30; /* 3 rows. */
-  double *z_31; /* 3 rows. */
-  double *z_32; /* 3 rows. */
-  double *z_33; /* 3 rows. */
-  double *z_34; /* 3 rows. */
-  double *z_35; /* 3 rows. */
-  double *z_36; /* 3 rows. */
-  double *z_37; /* 3 rows. */
-  double *z_38; /* 3 rows. */
-  double *z_39; /* 3 rows. */
-  double *z_40; /* 3 rows. */
-  double *z_41; /* 3 rows. */
-  double *z_42; /* 3 rows. */
-  double *z_43; /* 3 rows. */
-  double *z_44; /* 3 rows. */
-  double *z_45; /* 3 rows. */
-  double *z_46; /* 3 rows. */
-  double *z_47; /* 3 rows. */
-  double *z_48; /* 3 rows. */
-  double *jerk[48];
-  double *z[49];
+  double *t_01; /* 3 rows. */
+  double *t_02; /* 3 rows. */
+  double *t_03; /* 3 rows. */
+  double *t_04; /* 3 rows. */
+  double *t_05; /* 3 rows. */
+  double *t_06; /* 3 rows. */
+  double *t_07; /* 3 rows. */
+  double *t_08; /* 3 rows. */
+  double *t_09; /* 3 rows. */
+  double *t_10; /* 3 rows. */
+  double *t_11; /* 3 rows. */
+  double *t_12; /* 3 rows. */
+  double *t_13; /* 3 rows. */
+  double *t_14; /* 3 rows. */
+  double *t_15; /* 3 rows. */
+  double *t_16; /* 3 rows. */
+  double *t_17; /* 3 rows. */
+  double *t_18; /* 3 rows. */
+  double *t_19; /* 3 rows. */
+  double *t_20; /* 3 rows. */
+  double *t_21; /* 3 rows. */
+  double *t_22; /* 3 rows. */
+  double *t_23; /* 3 rows. */
+  double *t_24; /* 3 rows. */
+  double *t_25; /* 3 rows. */
+  double *t_26; /* 3 rows. */
+  double *t_27; /* 3 rows. */
+  double *t_28; /* 3 rows. */
+  double *t_29; /* 3 rows. */
+  double *t_30; /* 3 rows. */
+  double *t_31; /* 3 rows. */
+  double *t_32; /* 3 rows. */
+  double *t_33; /* 3 rows. */
+  double *t_34; /* 3 rows. */
+  double *t_35; /* 3 rows. */
+  double *t_36; /* 3 rows. */
+  double *x_1; /* 3 rows. */
+  double *x_0; /* 3 rows. */
+  double *x_2; /* 3 rows. */
+  double *x_3; /* 3 rows. */
+  double *x_4; /* 3 rows. */
+  double *x_5; /* 3 rows. */
+  double *x_6; /* 3 rows. */
+  double *x_7; /* 3 rows. */
+  double *x_8; /* 3 rows. */
+  double *x_9; /* 3 rows. */
+  double *x_10; /* 3 rows. */
+  double *x_11; /* 3 rows. */
+  double *x_12; /* 3 rows. */
+  double *x_13; /* 3 rows. */
+  double *x_14; /* 3 rows. */
+  double *x_15; /* 3 rows. */
+  double *x_16; /* 3 rows. */
+  double *x_17; /* 3 rows. */
+  double *x_18; /* 3 rows. */
+  double *x_19; /* 3 rows. */
+  double *x_20; /* 3 rows. */
+  double *x_21; /* 3 rows. */
+  double *x_22; /* 3 rows. */
+  double *x_23; /* 3 rows. */
+  double *x_24; /* 3 rows. */
+  double *x_25; /* 3 rows. */
+  double *x_26; /* 3 rows. */
+  double *x_27; /* 3 rows. */
+  double *x_28; /* 3 rows. */
+  double *x_29; /* 3 rows. */
+  double *x_30; /* 3 rows. */
+  double *x_31; /* 3 rows. */
+  double *x_32; /* 3 rows. */
+  double *x_33; /* 3 rows. */
+  double *x_34; /* 3 rows. */
+  double *x_35; /* 3 rows. */
+  double *x_36; /* 3 rows. */
+  double *jerk[36];
+  double *x[37];
 } Vars;
 typedef struct Workspace_t {
-  double h[194];
-  double s_inv[194];
-  double s_inv_z[194];
-  double b[150];
-  double q[195];
-  double rhs[733];
-  double x[733];
+  double h[216];
+  double s_inv[216];
+  double s_inv_z[216];
+  double b[6];
+  double q[255];
+  double rhs[693];
+  double x[693];
   double *s;
   double *z;
   double *y;
-  double lhs_aff[733];
-  double lhs_cc[733];
-  double buffer[733];
-  double buffer2[733];
-  double KKT[1746];
-  double L[1745];
-  double d[733];
-  double v[733];
-  double d_inv[733];
+  double lhs_aff[693];
+  double lhs_cc[693];
+  double buffer[693];
+  double buffer2[693];
+  double KKT[1986];
+  double L[2364];
+  double d[693];
+  double v[693];
+  double d_inv[693];
   double gap;
   double optval;
   double ineq_resid_squared;

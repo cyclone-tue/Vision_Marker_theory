@@ -98,7 +98,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
         // if at least one board marker detected
         if(valid > 0) {
-            writeDebug("\nboard found.\n", "log", false);
+            writeDebug("\nboard found.\n");
             foundMarker = true;
 
             aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvec, tvec, 0.1);
