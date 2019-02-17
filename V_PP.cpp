@@ -118,18 +118,18 @@ void test_PP(){
     VectorXd timeDiffs(0);
     MatrixXd torques(0,4);
 
-    currentState << 0,0,0, 0,0,0, 0,0,0, 0,0,0;         // input to the path planner
-    currentTorque << 0,0,0,0;
+    currentState << 2,0,0, 0,0,0, 0,0,0, 0,0,0;         // input to the path planner
+    currentTorque << 20,0,0,0;
     hoopTransVec << 10, 0, 0;
     hoopRotMat << 1,0,0, 0,1,0, 0,0,1;
 
     bool success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
 
-    MatrixXd outputInfo(path.rows(), 3);
-    outputInfo = path.block(0, 0, path.rows(), 3);
+    MatrixXd outputInfo(path.rows(), 12+1+4);
+    outputInfo << path, timeDiffs, torques;
 
-    //writeDebug("x, y, z:\n");
-    //writeDebug(outputInfo);
+    writeDebug("outputInfo:\n");
+    writeDebug(outputInfo);
 
     if(not success){
         writeDebug("Test was unsuccessful...\n");

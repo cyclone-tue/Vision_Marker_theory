@@ -11,7 +11,7 @@ namespace {
     double Iy = 1;
     double Iz = 1;
 
-    double m = 1;
+    double m = 2;
 }
 
 #endif //MARKER_VISION_CONSTANTS_H

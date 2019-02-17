@@ -20,7 +20,7 @@ All used frames stand still with respect to the earth.
 
 
 namespace {
-    double timeInterval = 2;
+    double timeInterval = 10;
     int n = 35;      // let n be the number as defined in CVXGEN.
 
     double d_before = -.5;
@@ -68,7 +68,19 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
     beginState = currentState;
     for (int i = 0; i <= waypoints; i++) {							// iterate over path intervals.
         constraintsPart = allConstraints.block<6,3>(0, i*3);
-        success &= getPathSegment(beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
+
+        double t_max = 30;
+        double t_min = 1;
+        double epsilon = 0.1;
+        for(double t = (t_max + t_min)/2; t_max - t_min <= epsilon; t = (t_max + t_min)/2){
+            if(getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
+                t_max = t;
+            } else{
+                t_min = t;
+            }
+        }
+        success &= getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
+
 
         // set up beginState for next iteration
         beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);   // never calculated correctly due to incomplete jerkToPath().
@@ -105,7 +117,7 @@ VectorXd path_planner::concatenateVec(VectorXd& one, VectorXd& two){
 currentState is size-12 vector.
 constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
  */
-bool path_planner::getPathSegment(VectorXd& currentState, MatrixXd& constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd& constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
     Vector3d beginX = constraints.block<1,3>(0,0);
     Vector3d endX = constraints.block<1,3>(3,0);
@@ -124,39 +136,36 @@ bool path_planner::getPathSegment(VectorXd& currentState, MatrixXd& constraints,
     VectorXd jerkCol(n+1);
     bool success = true;
 
-    success &= getSegment1D(beginX, endX, posCol, velCol, accCol, jerkCol);  // excludes end point
+    success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol);  // excludes end point
     pos.col(0) = posCol;
     vel.col(0) = velCol;
     acc.col(0) = accCol;
     jerk.col(0) = jerkCol;
-    success &= getSegment1D(beginY, endY, posCol, velCol, accCol, jerkCol);
+    success &= getSegment1D(time, beginY, endY, posCol, velCol, accCol, jerkCol);
     pos.col(1) = posCol;
     vel.col(1) = velCol;
     acc.col(1) = accCol;
     jerk.col(1) = jerkCol;
-    success &= getSegment1D(beginZ, endZ, posCol, velCol, accCol, jerkCol);
+    success &= getSegment1D(time, beginZ, endZ, posCol, velCol, accCol, jerkCol);
     pos.col(2) = posCol;
     vel.col(2) = velCol;
     acc.col(2) = accCol;
     jerk.col(2) = jerkCol;
 
-    writeDebug("pos: \n");
-    writeDebug(pos);
-    writeDebug("vel: \n");
-    writeDebug(vel);
-    writeDebug("acc: \n");
-    writeDebug(acc);
+    //writeDebug("acc: \n");
+    //writeDebug(acc);
     writeDebug("jerk: \n");
     writeDebug(jerk);
 
-    jerkToPath(currentState, pos, jerk, path, timeDiffs, torques);  // excludes end point
+    success &= jerkToPath(time, currentState, pos, vel, acc, jerk, path, timeDiffs, torques);  // excludes end point
+
 
     return success;
 }
 
 
-bool path_planner::getSegment1D(Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk){
-    load_data(begin, end);
+bool path_planner::getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk){
+    load_data(time, begin, end);
     long num_iters = solve();   // in solver.c
     for(int i = 0; i <= n+1; i++) pos(i, 0) = vars.x[i][0];
     for(int i = 0; i <= n; i++) jerk(i, 0) = vars.jerk[i][0];
@@ -246,9 +255,9 @@ timeDiffs is a vector of length N-1, with the time intervalls between the states
 torques is a N by 4 matrix each row being [thrust, torquex, torquey, torquez].
 
 */
-void path_planner::jerkToPath(VectorXd& beginState, MatrixXd& pos, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
-    double dt = timeInterval/(n+1);
+    double dt = time/(n+1);
 
     path.block<1,12>(0,0) = beginState;
     timeDiffs(0) = 0;
@@ -256,20 +265,18 @@ void path_planner::jerkToPath(VectorXd& beginState, MatrixXd& pos, MatrixXd& jer
 
     for(int i = 1; i <= n; i++){  // time = i*dt
         int j = i-1;
-
         // calculate state at time
         path.block<1,3>(i,0) = pos.block<1,3>(i,0);
-        /*
-        path.block<1,3>(i,3) = path.block<1,3>(i-1,3) + dt*jerk.block<1,3>(i,0);    // very incorrect.
+        path.block<1,3>(i,3) = vel.block<1,3>(i,3);
 
         double psi = 0;
         path(i,8) = psi;
-        path(i,7) = atan(jerk(j,1)*sin(psi) + jerk(j,0)*cos(psi))/(jerk(j,2) - g);//
-        path(i,6) = atan((jerk(j,0)/jerk(j,1) - cos(psi)*tan(path(i,7)))*cos(path(i,7))/sin(psi));
-        double phi = path(i,6);
+        path(i,7) = atan(1/(g-acc(i,2)) * (acc(i,1)*sin(psi) - acc(i,0))/(1-2*pow(sin(psi),2)));
         double theta = path(i,7);
+        path(i,6) = atan(-acc(i,1)/(g-acc(i,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
+        double phi = path(i,6);
 
-        double phidot = (path(i,6) - path(i-1,6))/dt;
+        double phidot = (path(i,6) - path(i-1,6))/dt;       // this can be done better...
         double thetadot = (path(i,7) - path(i-1,7))/dt;
         double psidot = (path(i,8) - path(i-1,8))/dt;
 
@@ -292,15 +299,36 @@ void path_planner::jerkToPath(VectorXd& beginState, MatrixXd& pos, MatrixXd& jer
         torques(i,1) = pdot*Ix + (Iz - Iy)*q*r;
         torques(i,2) = pdot*Iy + (Ix - Iz)*p*r;
         torques(i,3) = pdot*Iz + (Iy - Ix)*p*q;
-         */
 
     }
+
+    return validTorques(torques);
 
 }
 
 
-void path_planner::load_data(Vector3d beginState, Vector3d endState) {
-    double dt = timeInterval/(n+1);
+bool path_planner::validTorques(MatrixXd& torques){
+    double maxThrust = 100;
+    double minThrust = 1;
+    for(int i = 0; i < torques.rows(); i++){
+        Vector4d torquesRow = torques.row(i);
+        Vector4d thrusts = torquesToThrusts(torquesRow);
+        for(int j = 0; j <= 3; j++){
+            if(thrusts(j) < minThrust || thrusts(j) > maxThrust){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+Vector4d path_planner::torquesToThrusts(Vector4d& torques){
+    
+}
+
+
+void path_planner::load_data(double time, Vector3d beginState, Vector3d endState) {
+    double dt = time/(n+1);
     /*
     params.A[0] = 1.;
     params.A[1] = dt;
@@ -339,13 +367,13 @@ void path_planner::load_data(Vector3d beginState, Vector3d endState) {
     //params.min_jerk[0] = -1.;
     //params.jerk_dif[0] = 2.;
 
-    params.initial[0] = 1; //beginState[0];
-    params.initial[1] = 1; //beginState[1];
-    params.initial[2] = 1; //beginState[2];
+    params.initial[0] = beginState[0];
+    params.initial[1] = beginState[1];
+    params.initial[2] = beginState[2];
 
-    params.final[0] = 10;//endState[0];
-    params.final[1] = 2; //endState[1];
-    params.final[2] = 2; //endState[2];
+    params.final[0] = endState[0];
+    params.final[1] = endState[1];
+    params.final[2] = endState[2];
 
     params.lambda[0] = 100000;
     params.lambda[1] = 10000;

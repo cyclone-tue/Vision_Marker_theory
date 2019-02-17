@@ -59,13 +59,15 @@ class path_planner{
     private:
         static MatrixXd concatenate(MatrixXd& one, MatrixXd& two);
         static VectorXd concatenateVec(VectorXd& one, VectorXd& two);
-        static bool getPathSegment(VectorXd& currentState, MatrixXd& constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
-        static bool getSegment1D(Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk);
+        static bool getPathSegment(double time, VectorXd& currentState, MatrixXd& constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static bool getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk);
         static MatrixXd getConstraints(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
         static Matrix3d get_ders_hoop_to_world(double dist, double vel, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
         static Matrix3d stateToPosDers(VectorXd& currentState, Vector4d& currentTorque);
-        static void jerkToPath(VectorXd& beginState, MatrixXd& pos, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
-        static void load_data(Vector3d beginState, Vector3d endState);
+        static bool jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static bool validTorques(MatrixXd& torques);
+        static Vector4d torquesToThrusts(Vector4d& torques);
+        static void load_data(double time, Vector3d beginState, Vector3d endState);
     };
 /*
 jiroe MatrixXd arrayToEigen(double* array, int rows, int columns);
