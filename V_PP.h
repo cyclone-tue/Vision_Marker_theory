@@ -35,11 +35,11 @@ extern "C" {
 
 
 // in logging.c :
-void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
+/*void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
 void writeDebug(string info, bool display, string destination = "log");
 void writeDebug(MatrixXd info, bool display, string destination = "log");
 void writeDebug(string info, string destination = "log", bool display = false);
-void writeDebug(MatrixXd info, string destination = "log", bool display = false);
+void writeDebug(MatrixXd info, string destination = "log", bool display = false);*/
 
 
 

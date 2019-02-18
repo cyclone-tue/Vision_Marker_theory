@@ -10,10 +10,10 @@
 void setup(const char* camera_calibration_file){
     time_t t = time(0);
     string now(ctime(&t));
-    writeDebug("\n=========================== new setup() started at " + now + "\n");
+    //writeDebug("\n=========================== new setup() started at " + now + "\n");
     vision::setupVariables(0, camera_calibration_file);
     path_planner::init();
-    writeDebug("setup done\n");
+    //writeDebug("setup done\n");
     return;
 }
 
@@ -55,15 +55,15 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
 
     bool success = runFrame(currentState, currentTorque, path, timeDiffs, torques);
     if(visualize){
-        runVisualize(currentState, path, success);
+        //runVisualize(currentState, path, success);
     }
     if(success) {
         *pathLength = path.rows();
         MatrixXd outputInfo(*pathLength, 3);
         outputInfo = path.block(0,0, path.rows(),3);
 
-        writeDebug("path:\n");
-        writeDebug(outputInfo);
+        //writeDebug("path:\n");
+        //writeDebug(outputInfo);
 
         //copy path to output array
         double output_array[*pathLength][12 + 1 + 4];
@@ -89,7 +89,7 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
     if(foundHoop){
         success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
         if(not success){
-            writeDebug("Path planning was unsuccessful...\n");
+            //writeDebug("Path planning was unsuccessful...\n");
         }
     }
     return success;
@@ -111,7 +111,7 @@ void test_PP(){
 
     time_t t = time(0);
     string now(ctime(&t));
-    writeDebug("\n========================== new test_PP() started at " + now + "\n");
+    //writeDebug("\n========================== new test_PP() started at " + now + "\n");
 
     VectorXd currentState(12);  // input variables
     Vector4d currentTorque;
@@ -131,14 +131,14 @@ void test_PP(){
     MatrixXd outputInfo(path.rows(), 12+1+4);
     outputInfo << path, timeDiffs, torques;
 
-    writeDebug("outputInfo:\n");
-    writeDebug(outputInfo);
+    //writeDebug("outputInfo:\n");
+    //writeDebug(outputInfo);
 
     if(not success){
-        writeDebug("Test was unsuccessful...\n");
+        //writeDebug("Test was unsuccessful...\n");
     }
 
-    writeDebug("End of test.\n");
+    //writeDebug("End of test.\n");
     return;
 }
 

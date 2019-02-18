@@ -48,14 +48,14 @@ hoopRotMat = rotation from hoop frame to world frame.
 */
 bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
-    writeDebug("currentState: \n");
+    /*writeDebug("currentState: \n");
     writeDebug(currentState);
     writeDebug("currentTorque: \n");
     writeDebug(currentTorque);
     writeDebug("hoopTransVec: \n");
     writeDebug(hoopTransVec);
     writeDebug("hoopRotMat: \n");
-    writeDebug(hoopRotMat);
+    writeDebug(hoopRotMat);*/
 
     MatrixXd pathPart(n + 1, 12);       // including begin and excluding end point.
     VectorXd timeDiffsPart(n + 1);
@@ -70,8 +70,8 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
 
     // set up the constraints
     MatrixXd allConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat);
-    writeDebug("constraints:\n");
-    writeDebug(allConstraints);
+    //writeDebug("constraints:\n");
+    //writeDebug(allConstraints);
     int waypoints = (int) allConstraints.cols() / 3 - 1;
 
     beginState = currentState;

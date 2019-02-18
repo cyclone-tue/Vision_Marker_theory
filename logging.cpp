@@ -14,7 +14,7 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
     if(displayPath) {
         MatrixXd points(path.rows(), path.cols());
 
-        writeDebug(path, "log", false);
+        //writeDebug(path, "log", false);
 
         vector<Point3d> cvPoints;
         for (int row = 0; row < points.rows(); row++) {
@@ -43,7 +43,7 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 // === writing to log files ===
 
 
-void writeDebug(string info, bool display, string destination){
+/*void writeDebug(string info, bool display, string destination){
     writeDebug(info, destination, display);
     return;
 }
@@ -82,6 +82,6 @@ void writeDebug(MatrixXd info, string destination, bool display){
 }
 
 
-
+*/
 
 
