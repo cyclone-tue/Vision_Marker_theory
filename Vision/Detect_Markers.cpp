@@ -178,10 +178,6 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
     imageCopy.copyTo(vision::debugFrame);       // for visualization
 
-    if(debugWriter.isOpened()){
-        debugWriter.write(imageCopy);
-    }
-
     return foundMarker;
 }
 
@@ -341,4 +337,10 @@ void vision::cleanup(){
     cap.release();
 
     debugWriter.release();
+}
+
+void vision::writeVideo(Mat frame){
+    if(debugWriter.isOpened()){
+        debugWriter.write(frame);
+    }
 }

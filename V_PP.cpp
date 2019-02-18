@@ -78,18 +78,11 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
 
 // ==== other functions ====
 
+    if(displayPath) {
 
-bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
-
-    bool success = false;
-    Vector3d hoopTransVec;
-    Matrix3d hoopRotMat;
-
-    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
-    if(foundHoop){
-        success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
-        if(not success){
-            writeDebug("Path planning was unsuccessful...\n");
+        vector<Point3d> cvPoints;
+        for (int row = 0; row < path.rows(); row++) {
+            cvPoints.push_back(Point3d(path(row, 0), path(row, 1), path(row, 2)));
         }
     }
     return success;
@@ -104,7 +97,17 @@ VectorXd arrayToEigen(double* array, int length){
 }
 
 
-// ==== test scenarios ====
+        for (int j = imagePoints.size() -1; j > 0 ; j--) {
+            Point first = imagePoints[j-1];
+            Point second = imagePoints[j];
+
+            if(clipLine(Rect(0,0,600,600), first, second)){
+                line(frame, first, second, Scalar(int(255 / imagePoints.size() * j), 0,
+                                                  int(255 / imagePoints.size() *
+                                                      (imagePoints.size() - j))), 3);
+            }
+
+        }
 
 
 void test_PP(){
@@ -138,7 +141,9 @@ void test_PP(){
         writeDebug("Test was unsuccessful...\n");
     }
 
-    writeDebug("End of test.\n");
+    vision::writeVideo(frame);
+    imshow("out", frame);
+    waitKey(1);
     return;
 }
 
@@ -153,13 +158,12 @@ void test_V_PP(){
 
     double *output_ptr;   // contains path, timeDiffs, torques
     while(true){
-        output_ptr = output_to_py(currentState, currentTorque, pathLength, visualize);
+        db_p = output_to_py(currentState, currentTorque, pathLength, visualize);
+        int pressed = waitKey(1);
+        if(pressed != -1){
+            break;
+        }
     }
-    return;
-}
-
-
-int main(){
-    test_PP();
+    cleanup();
     return 0;
 }

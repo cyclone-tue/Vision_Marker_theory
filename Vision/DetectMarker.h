@@ -31,6 +31,7 @@ public:
     static void setupVariables(int camera, const char *calibrationFile);
     static void cleanup();
     static void projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentState, vector<Point2d>& imagePoints);
+    static void writeVideo(Mat frame);
     static Mat debugFrame;  // for visualization.
 private:
     static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
