@@ -71,7 +71,8 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
     // set up the constraints
     MatrixXd allConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat);
     //writeDebug("constraints:\n");
-    //writeDebug(allConstraints);
+    //
+    // writeDebug(allConstraints);
     int waypoints = (int) allConstraints.cols() / 3 - 1;
 
     beginState = currentState;
