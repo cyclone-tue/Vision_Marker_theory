@@ -65,6 +65,8 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
         //writeDebug("path:\n");
         //writeDebug(outputInfo);
 
+	cout << "Path:" << endl << outputInfo << endl;
+
         //copy path to output array
         double output_array[*pathLength][12 + 1 + 4];
         Map<MatrixXd>(&output_array[0][0], outputInfo.rows(), outputInfo.cols()) = outputInfo;
