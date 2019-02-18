@@ -21,7 +21,7 @@ All used frames stand still with respect to the earth.
 
 namespace {
     double timeInterval = 10;
-    int n = 35;      // let n be the number as defined in CVXGEN.
+    int n = 40;      // let n be the number as defined in CVXGEN.
 
     double d_before = -.5;
     double v_before = .5;
@@ -48,6 +48,15 @@ hoopRotMat = rotation from hoop frame to world frame.
 */
 bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
+    writeDebug("currentState: \n");
+    writeDebug(currentState);
+    writeDebug("currentTorque: \n");
+    writeDebug(currentTorque);
+    writeDebug("hoopTransVec: \n");
+    writeDebug(hoopTransVec);
+    writeDebug("hoopRotMat: \n");
+    writeDebug(hoopRotMat);
+
     MatrixXd pathPart(n + 1, 12);       // including begin and excluding end point.
     VectorXd timeDiffsPart(n + 1);
     MatrixXd torquesPart(n + 1, 4);
@@ -70,10 +79,10 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
         constraintsPart = allConstraints.block<6,3>(0, i*3);
 
         double t_max = 30;
-        double t_min = 1;
+        double t_min = 0;
         double epsilon = 0.1;
-        for(double t = (t_max + t_min)/2; t_max - t_min <= epsilon; t = (t_max + t_min)/2){
-            if(getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
+        for(double t = (t_max + t_min)/2; t_max - t_min >= epsilon; t = (t_max + t_min)/2){
+            if(getPathSegment(t, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
                 t_max = t;
             } else{
                 t_min = t;
@@ -154,11 +163,13 @@ bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd&
 
     //writeDebug("acc: \n");
     //writeDebug(acc);
-    writeDebug("jerk: \n");
-    writeDebug(jerk);
+    //writeDebug(pos);
+    //writeDebug("vel: \n");
+    //writeDebug(vel);
+    //writeDebug("jerk: \n");
+    //writeDebug(jerk);
 
     success &= jerkToPath(time, currentState, pos, vel, acc, jerk, path, timeDiffs, torques);  // excludes end point
-
 
     return success;
 }
@@ -267,7 +278,7 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
         int j = i-1;
         // calculate state at time
         path.block<1,3>(i,0) = pos.block<1,3>(i,0);
-        path.block<1,3>(i,3) = vel.block<1,3>(i,3);
+        path.block<1,3>(i,3) = vel.block<1,3>(i,0);
 
         double psi = 0;
         path(i,8) = psi;
@@ -301,15 +312,14 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
         torques(i,3) = pdot*Iz + (Iy - Ix)*p*q;
 
     }
-
     return validTorques(torques);
 
 }
 
 
 bool path_planner::validTorques(MatrixXd& torques){
-    double maxThrust = 100;
-    double minThrust = 1;
+    double maxThrust = 25./4;  //Newton
+    double minThrust = 0;
     for(int i = 0; i < torques.rows(); i++){
         Vector4d torquesRow = torques.row(i);
         Vector4d thrusts = torquesToThrusts(torquesRow);
@@ -322,8 +332,20 @@ bool path_planner::validTorques(MatrixXd& torques){
     return true;
 }
 
-Vector4d path_planner::torquesToThrusts(Vector4d& torques){
-    
+Vector4d path_planner::torquesToThrusts(Vector4d torques){
+    // solving torques = M*thrusts
+    double c_q = 2.42e-7;
+    double c_t = 8.048e-6;
+    double d = 0.12;
+    double b = c_q/c_t;
+    Matrix4d diag;
+    diag << 1,0,0,0, 0,d,0,0, 0,0,d,0, 0,0,0,b;
+    Matrix4d signs;
+    signs << 1,1,1,1, 1,1,-1,-1, 1,-1,-1,1, -1,1,-1,1;
+
+    Matrix4d M = diag*signs;
+    Vector4d thrusts = M.colPivHouseholderQr().solve(torques);
+    return thrusts;
 }
 
 
@@ -375,9 +397,9 @@ void path_planner::load_data(double time, Vector3d beginState, Vector3d endState
     params.final[1] = endState[1];
     params.final[2] = endState[2];
 
-    params.lambda[0] = 100000;
-    params.lambda[1] = 10000;
-    params.lambda[2] = 1000;
+    //params.lambda[0] = 100000;
+    //params.lambda[1] = 10000;
+    //params.lambda[2] = 1000;
     //params.mu[0] = 0;
     //params.mu[1] = 0;
     //params.mu[2] = 100000;

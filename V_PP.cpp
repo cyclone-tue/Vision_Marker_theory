@@ -59,10 +59,10 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     }
     if(success) {
         *pathLength = path.rows();
-        MatrixXd outputInfo(*pathLength, 12 + 1 + 4);
-        outputInfo << path, timeDiffs, torques;
+        MatrixXd outputInfo(*pathLength, 3);
+        outputInfo = path.block(0,0, path.rows(),3);
 
-        writeDebug("path,timeDiffs,torques:\n");
+        writeDebug("path:\n");
         writeDebug(outputInfo);
 
         //copy path to output array
@@ -88,6 +88,9 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
     bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
     if(foundHoop){
         success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
+        if(not success){
+            writeDebug("Path planning was unsuccessful...\n");
+        }
     }
     return success;
 }
