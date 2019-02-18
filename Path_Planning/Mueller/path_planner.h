@@ -5,6 +5,8 @@
 #include <iostream>
 #include "../../constants.h"
 
+#include "../../V_PP.h"
+
 extern "C" {
     #include "cvxgen/solver.h"
 }
@@ -29,9 +31,8 @@ a state of the drone is [x,y,z, Vx,Vy,Vz, roll,pitch,yaw, p,q,r].
 
 class path_planner{
     public:
-        int getPathSize();
-        void init();
-        void release();
+        static void init();
+        static void release();
 
         /*
         Let the hoop coordinate frame be as follows:
@@ -54,18 +55,19 @@ class path_planner{
 
         return value    : number of states in &path.
         */
-        static int run(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static bool run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
     private:
-        static void jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
-        static void getEndStatePosDers(VectorXd currentState, Vector3d hoopTransVec, Matrix3d hoopRotMat, Vector3d& endX, Vector3d& endY, Vector3d& endZ);
-        static void load_default_data(Vector3d beginState, Vector3d endState);
-        static MatrixXd getConstraints(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat);
-        static Matrix3d get_before_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat);
-        static Matrix3d get_after_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat);
-        static Matrix3d stateToPosDers(VectorXd currentState, Vector4d currentTorque);
-        static void getPathSegment(VectorXd currentState, MatrixXd constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
         static MatrixXd concatenate(MatrixXd& one, MatrixXd& two);
         static VectorXd concatenateVec(VectorXd& one, VectorXd& two);
+        static bool getPathSegment(double time, VectorXd& currentState, MatrixXd& constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static bool getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk);
+        static MatrixXd getConstraints(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
+        static Matrix3d get_ders_hoop_to_world(double dist, double vel, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
+        static Matrix3d stateToPosDers(VectorXd& currentState, Vector4d& currentTorque);
+        static bool jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static bool validTorques(MatrixXd& torques);
+        static Vector4d torquesToThrusts(Vector4d torques);
+        static void load_data(double time, Vector3d beginState, Vector3d endState);
     };
 /*
 jiroe MatrixXd arrayToEigen(double* array, int rows, int columns);

@@ -10,6 +10,7 @@
 #include <opencv2/aruco.hpp>        //
 #include <opencv2/highgui.hpp>      //
 #include "CircleBoard.h"
+#include "../V_PP.h"
 
 #define CAMERA_WIDTH 640
 #define CAMERA_HEIGHT 480

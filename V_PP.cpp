@@ -3,32 +3,25 @@
 #include "V_PP.h"
 
 
-int runFrame(bool visualize, VectorXd currentState, VectorXd currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
-    int pathLength = 0;
-
-    Vector3d hoopTransVec;
-    Matrix3d hoopRotMat;
-
-    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
-
-
-    if(foundHoop == true){
-        pathLength = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
-    }
-
-
-    return pathLength;
-}
+// ==== functions to be called from python scripts ====
 
 
 void setup(const char* camera_calibration_file){
+    time_t t = time(0);
+    string now(ctime(&t));
+    writeDebug("\n=========================== new setup() started at " + now + "\n");
     vision::setupVariables(0, camera_calibration_file);
+    path_planner::init();
+    writeDebug("setup done\n");
+    return;
 }
 
 
 void cleanup(){
     vision::cleanup();
+    path_planner::release();
+    return;
 }
 
 /*
@@ -50,93 +43,123 @@ return value    : pointer to array of doubles, being the elements([row0,row1, ..
 */
 double* output_to_py(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize){
 
-    VectorXd currentState(12);
-    VectorXd currentTorque(4);
-    for(int i = 0; i <= 11; i++){
-        currentState(i) = currentStateArray[i];
-    }
-    for(int i = 0; i <= 3; i++){
-        currentTorque(i) = currentTorqueArray[i];
-    }
-
-    double* db_p;  // stands for ...
+    VectorXd currentState(12);      // input variables
+    Vector4d currentTorque;
+    double* output_ptr;             // output variables
     MatrixXd path(0,12);
     VectorXd timeDiffs(0);
     MatrixXd torques(0,4);
 
-    *pathLength = runFrame(visualize, currentState, currentTorque, path, timeDiffs, torques);
+    currentState = arrayToEigen(currentStateArray, 12);
+    currentTorque = arrayToEigen(currentTorqueArray, 4);
 
-    if(visualize) runVisualize(currentState, path, *pathLength!=0);
+    bool success = runFrame(currentState, currentTorque, path, timeDiffs, torques);
+    if(visualize){
+        runVisualize(currentState, path, success);
+    }
+    if(success) {
+        *pathLength = path.rows();
+        MatrixXd outputInfo(*pathLength, 3);
+        outputInfo = path.block(0,0, path.rows(),3);
 
-    if(*pathLength != 0) {      // should be more robust.
-
-        MatrixXd outputInfo(*pathLength, 12 + 1 + 4);
-        outputInfo << path, timeDiffs, torques;
-
-        cout << "path,timeDiffs,torques, from output_to_py" << endl;
-        cout << outputInfo << endl;
+        writeDebug("path:\n");
+        writeDebug(outputInfo);
 
         //copy path to output array
-        double db_array[*pathLength][12 + 1 + 4];
-        Map<MatrixXd>(&db_array[0][0], outputInfo.rows(), outputInfo.cols()) = outputInfo;
-        db_p = &db_array[0][0];
-        return db_p;
+        double output_array[*pathLength][12 + 1 + 4];
+        Map<MatrixXd>(&output_array[0][0], outputInfo.rows(), outputInfo.cols()) = outputInfo;
+        output_ptr = &output_array[0][0];
+        return output_ptr;
     }
     
     return nullptr;
 }
 
-/*
-path contains x times 12 elements.
- */
-void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
-    Mat frame;
-    vision::debugFrame.copyTo(frame);
+// ==== other functions ====
 
-    if(displayPath) {
-        MatrixXd points(path.rows(), path.cols());
 
-        vector<Point3d> cvPoints;
-        for (int row = 0; row < points.rows(); row++) {
-            cvPoints.push_back(Point3d(points(row, 0), points(row, 1), points(row, 2)));
+bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+
+    bool success = false;
+    Vector3d hoopTransVec;
+    Matrix3d hoopRotMat;
+
+    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
+    if(foundHoop){
+        success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
+        if(not success){
+            writeDebug("Path planning was unsuccessful...\n");
         }
+    }
+    return success;
+}
 
-        vector<Point2d> imagePoints;
-        vision::projectPointsOntoCam(cvPoints, currentState, imagePoints);
+VectorXd arrayToEigen(double* array, int length){
+    VectorXd vector(length);
+    for(int i = 0; i < length; i++){
+        vector(i) = array[i];
+    }
+    return vector;
+}
 
 
-        for (int j = 0; j < imagePoints.size() - 1; j++) {
-            line(frame, imagePoints[j], imagePoints[j + 1], Scalar(int(255 / imagePoints.size() * j), 0,
-                                                                   int(255 / imagePoints.size() *
-                                                                       (imagePoints.size() - j))), 3);
-        }
+// ==== test scenarios ====
 
+
+void test_PP(){
+
+    time_t t = time(0);
+    string now(ctime(&t));
+    writeDebug("\n========================== new test_PP() started at " + now + "\n");
+
+    VectorXd currentState(12);  // input variables
+    Vector4d currentTorque;
+    Vector3d hoopTransVec;
+    Matrix3d hoopRotMat;
+    MatrixXd path(0,12);        // output variables
+    VectorXd timeDiffs(0);
+    MatrixXd torques(0,4);
+
+    currentState << 5,4,1, 0,0,0, 0,0,0, 0,0,0;         // input to the path planner
+    currentTorque << 20,0,0,0;
+    hoopTransVec << 10, -3, 2;
+    hoopRotMat << 1,0,0, 0,1,0, 0,0,1;
+
+    bool success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
+
+    MatrixXd outputInfo(path.rows(), 12+1+4);
+    outputInfo << path, timeDiffs, torques;
+
+    writeDebug("outputInfo:\n");
+    writeDebug(outputInfo);
+
+    if(not success){
+        writeDebug("Test was unsuccessful...\n");
     }
 
-    imshow("out", frame);
-    waitKey(1);
+    writeDebug("End of test.\n");
     return;
 }
 
 
-int main(){
-
+void test_V_PP(){
     setup("../laptop_calibration.txt");
-    cout << "setup done" << endl;
 
     double currentState [12] = {0,0,0, 0,0,0, 0,0,0, 0,0,0};
     double currentTorque [4] = {0,0,0,0};
     int* pathLength = new int(1);
     bool visualize = true;
 
-
-    double *db_p;
+    double *output_ptr;   // contains path, timeDiffs, torques
     while(true){
-        db_p = output_to_py(currentState, currentTorque, pathLength, visualize);
+        output_ptr = output_to_py(currentState, currentTorque, pathLength, visualize);
     }
-
-    return 0;
+    return;
 }
 
 
+int main(){
+    test_PP();
+    return 0;
+}

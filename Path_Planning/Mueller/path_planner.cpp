@@ -8,24 +8,30 @@ Settings settings;
 
 
 
+/*
+Let the hoop coordinate frame be as follows:
+The x-axis goes through the main symmetry axis of the hoop, positive direction given by the passage direction.
+The y-axis is horizontal in the earth-frame, positive direction to the right, from the incoming drone point of view.
+The z-axis is as in a righthanded coordinate frame.
+
+The positive direction of the z-axis of the world frame is parallel to the gravitational acceleration.
+All used frames stand still with respect to the earth.
+*/
+
+
 namespace {
-    
-    // let N be the number of points on the path including start and end point.
+    double timeInterval = 10;
+    int n = 40;      // let n be the number as defined in CVXGEN.
 
-    double timeInterval = 1;
-    int number_of_points = 51;   // = N
-
-
-    const double d_after = 0.5;
-    const double v_after = 0.1;
-    const double d_before = 0.5;
-    const double v_in = 0.1;
-
+    double d_before = -.5;
+    double v_before = .5;
+    double d_after = .5;
+    double v_after = .5;
 }
 
-int path_planner::getPathSize(){
-    return number_of_points;
-}
+
+// ==== public functions ===
+
 
 void path_planner::init(){
     return;
@@ -36,88 +42,71 @@ void path_planner::release(){
 }
 
 /*
-Let the hoop coordinate frame be as follows:
-The x-axis goes through the main symmetry axis of the hoop, positive direction given by the passage direction.
-The y-axis is horizontal in the earth-frame, positive direction to the right, from the incoming drone point of view.
-The z-axis is as in a righthanded coordinate frame.
-
-The positive direction of the z-axis of the world frame is parallel to the gravitational acceleration.
-All used frames stand still with respect to the earth.
+currentState = state of drone in world frame.
+hoopTransVec = hoop position in world frame.
+hoopRotMat = rotation from hoop frame to world frame.
 */
-int path_planner::run(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
-    // currentState = state of drone in world frame.
-    // hoopTransVec = hoop position in world frame.
-    // hoopRotMat = rotation from hoop frame to world frame.
+bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+
+    writeDebug("currentState: \n");
+    writeDebug(currentState);
+    writeDebug("currentTorque: \n");
+    writeDebug(currentTorque);
+    writeDebug("hoopTransVec: \n");
+    writeDebug(hoopTransVec);
+    writeDebug("hoopRotMat: \n");
+    writeDebug(hoopRotMat);
+
+    MatrixXd pathPart(n + 1, 12);       // including begin and excluding end point.
+    VectorXd timeDiffsPart(n + 1);
+    MatrixXd torquesPart(n + 1, 4);
+    MatrixXd constraintsPart(6, 3);     // constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
+    VectorXd beginState(12);
+    VectorXd beginState_temp(12);
+    bool success = true;
 
     set_defaults();                 // in solver.c
     setup_indexing();               // in solver.c
 
-
+    // set up the constraints
     MatrixXd allConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat);
-    cout << allConstraints << endl;
+    writeDebug("constraints:\n");
+    writeDebug(allConstraints);
+    int waypoints = (int) allConstraints.cols() / 3 - 1;
 
-    int waypoints = allConstraints.cols()/3 - 1;
-    int totalLength = 0;
-
-    MatrixXd pathPart(number_of_points, 12);
-    VectorXd timeDiffsPart(number_of_points);
-    MatrixXd torquesPart(number_of_points, 4);
-    MatrixXd constraintsPart(6,3);		// constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
-
-
-
-
-    //path.resize(0,12);
-    //timeDiffs.resize(0);
-    //torques.resize(0,4);
-
-    VectorXd beginState(12);
     beginState = currentState;
-    VectorXd beginState_temp(12);
     for (int i = 0; i <= waypoints; i++) {							// iterate over path intervals.
+        constraintsPart = allConstraints.block<6,3>(0, i*3);
 
-        constraintsPart = allConstraints.block<6,3>(0, i*3); 			// get constraints for this path interval
+        double t_max = 30;
+        double t_min = 0;
+        double epsilon = 0.1;
+        for(double t = (t_max + t_min)/2; t_max - t_min >= epsilon; t = (t_max + t_min)/2){
+            if(getPathSegment(t, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
+                t_max = t;
+            } else{
+                t_min = t;
+            }
+        }
+        success &= getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
 
-        getPathSegment(beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
-        int points = pathPart.rows();
-        totalLength += points;
 
-        beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);
+        // set up beginState for next iteration
+        beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);   // never calculated correctly due to incomplete jerkToPath().
         beginState = beginState_temp.replicate(1,12);
+        beginState.block<3,1>(0,0) = constraintsPart.block<3,1>(3,0);
+        beginState.block<3,1>(0,3) = constraintsPart.block<3,1>(3,1);
 
         path = concatenate(path, pathPart);
-
-        //MatrixXd path_temp(totalLength, 12);
-        //path_temp.block(0,0, path.rows(), 12) = path.replicate(path.rows(), 12);
-        //path_temp.block(totalLength-points-1, 0, points, 12) = pathPart.replicate(points, 12);
-        //path.resize(totalLength, 12);
-        //path = path_temp.replicate(totalLength, 12);
-
-
         timeDiffs = concatenateVec(timeDiffs, timeDiffsPart);
-
-        //VectorXd timeDiffs_temp(totalLength);
-        //timeDiffs_temp.block(0,0, timeDiffs.rows(), 1) = timeDiffs.replicate(timeDiffs.rows(),1);
-        //timeDiffs_temp.block(totalLength-points-1, 0, points, 12) = timeDiffsPart.replicate(points,1);
-        //cout << "a" << endl;
-        //timeDiffs.resize(totalLength);
-        //cout << "b" << endl;
-        //timeDiffs = timeDiffs_temp.replicate(totalLength,1);
-
-
         torques = concatenate(torques, torquesPart);
-
-        //MatrixXd torques_temp(totalLength,4);
-        //torques_temp.block(0,0, torques.rows(), 1) = torques.replicate(torques.rows(), 4);
-        //torques_temp.block(totalLength-points-1,0,points,4) = torquesPart.replicate(points, 4);
-        //torques.resize(totalLength, 4);
-        //torques = torques_temp.replicate(totalLength, 4);
-
-
     }
-
-    return number_of_points*(waypoints + 1);
+    return success;
 }
+
+
+// ==== other functions ====
+
 
 MatrixXd path_planner::concatenate(MatrixXd& one, MatrixXd& two){
     MatrixXd result(one.rows() + two.rows(), one.cols());
@@ -137,9 +126,7 @@ VectorXd path_planner::concatenateVec(VectorXd& one, VectorXd& two){
 currentState is size-12 vector.
 constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
  */
-void path_planner::getPathSegment(VectorXd currentState, MatrixXd constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
-    MatrixXd pos(51, 3);
-    MatrixXd jerk(51, 3);
+bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd& constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
     Vector3d beginX = constraints.block<1,3>(0,0);
     Vector3d endX = constraints.block<1,3>(3,0);
@@ -147,40 +134,63 @@ void path_planner::getPathSegment(VectorXd currentState, MatrixXd constraints, M
     Vector3d endY = constraints.block<1,3>(4,0);
     Vector3d beginZ = constraints.block<1,3>(2,0);
     Vector3d endZ = constraints.block<1,3>(5,0);
+    MatrixXd pos(n+2, 3);    // excluding end point
+    MatrixXd vel(n+2, 3);
+    MatrixXd acc(n+2, 3);
+    MatrixXd jerk(n+1, 3);
 
-    load_default_data(beginX, endX);            // x
-    long num_iters_x = solve();                   // in solver.c
-    for(int i = 0; i <= 50; i++){
-        pos(i, 0) = *vars.z[i];
-        jerk(i, 0) = *vars.jerk[i];
-    }
+    VectorXd posCol(n+2);
+    VectorXd velCol(n+2);
+    VectorXd accCol(n+2);
+    VectorXd jerkCol(n+1);
+    bool success = true;
 
-    load_default_data(beginY, endY);            // y
-    long num_iters_y = solve();                   // in solver.c
-    for(int i = 0; i <= 50; i++){
-        pos(i, 1) = *vars.z[i];
-        jerk(i, 1) = *vars.jerk[i];
-    }
+    success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol);  // excludes end point
+    pos.col(0) = posCol;
+    vel.col(0) = velCol;
+    acc.col(0) = accCol;
+    jerk.col(0) = jerkCol;
+    success &= getSegment1D(time, beginY, endY, posCol, velCol, accCol, jerkCol);
+    pos.col(1) = posCol;
+    vel.col(1) = velCol;
+    acc.col(1) = accCol;
+    jerk.col(1) = jerkCol;
+    success &= getSegment1D(time, beginZ, endZ, posCol, velCol, accCol, jerkCol);
+    pos.col(2) = posCol;
+    vel.col(2) = velCol;
+    acc.col(2) = accCol;
+    jerk.col(2) = jerkCol;
 
-    load_default_data(beginZ, endZ);            // z
-    long num_iters_z = solve();                   // in solver.c
-    for(int i = 0; i <= 50; i++){
-        pos(i, 2) = *vars.z[i];
-        jerk(i, 2) = *vars.jerk[i];
-    }
+    //writeDebug("acc: \n");
+    //writeDebug(acc);
+    //writeDebug(pos);
+    //writeDebug("vel: \n");
+    //writeDebug(vel);
+    //writeDebug("jerk: \n");
+    //writeDebug(jerk);
 
+    success &= jerkToPath(time, currentState, pos, vel, acc, jerk, path, timeDiffs, torques);  // excludes end point
 
-    jerkToPath(currentState, pos, jerk, path, timeDiffs, torques);
+    return success;
 }
 
 
-MatrixXd path_planner::getConstraints(VectorXd currentState, VectorXd currentTorque, Vector3d hoopTransVec, Matrix3d hoopRotMat){
+bool path_planner::getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk){
+    load_data(time, begin, end);
+    long num_iters = solve();   // in solver.c
+    for(int i = 0; i <= n+1; i++) pos(i, 0) = vars.x[i][0];
+    for(int i = 0; i <= n; i++) jerk(i, 0) = vars.jerk[i][0];
+    for(int i = 0; i <= n+1; i++) vel(i, 0) = vars.x[i][1];
+    for(int i = 0; i <= n+1; i++) acc(i, 0) = vars.x[i][2];
+    return work.converged == 1;
+}
 
+
+MatrixXd path_planner::getConstraints(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat){
     // ders = [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
-
     Matrix3d currentDers = stateToPosDers(currentState, currentTorque);
-    Matrix3d before_ders = get_before_ders(hoopTransVec, hoopRotMat);
-    Matrix3d after_ders = get_after_ders(hoopTransVec, hoopRotMat);
+    Matrix3d before_ders = get_ders_hoop_to_world(d_before, v_before, hoopTransVec, hoopRotMat);
+    Matrix3d after_ders = get_ders_hoop_to_world(d_after, v_after, hoopTransVec, hoopRotMat);
 
     Vector3d pos_now = currentState.block<3,1>(0,0);
     Vector3d pos_in = before_ders.block<3,1>(0,0);
@@ -200,7 +210,6 @@ MatrixXd path_planner::getConstraints(VectorXd currentState, VectorXd currentTor
         allConstraints.block<3, 3>(0, 3) = before_ders;		// constraints of second trajectory part (stateBeforeHoop -> stateAfterHoop)
         allConstraints.block<3, 3>(3, 3) = after_ders;
     }
-
     return allConstraints;
 }
 
@@ -208,70 +217,31 @@ MatrixXd path_planner::getConstraints(VectorXd currentState, VectorXd currentTor
 return format is
  [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
 */
-Matrix3d path_planner::get_before_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat){
-    double d_before = -.5;
-    double v_before = .5;
-
+Matrix3d path_planner::get_ders_hoop_to_world(double dist, double vel, Vector3d& hoopTransVec, Matrix3d& hoopRotMat){
     Matrix3d R = hoopRotMat;
 
-    // state relative to hoop before hoop
-    Vector3d dist_in(d_before, 0, 0);				// hoop frame
-    Vector3d vel_in(v_before, 0, 0);
-    dist_in = hoopTransVec + R*dist_in;				// world frame
-    vel_in = R*vel_in;
+    // state before hoop
+    Vector3d dist_vec(dist, 0, 0);				// hoop frame
+    Vector3d vel_vec(vel, 0, 0);
+    dist_vec = hoopTransVec + R*dist_vec;		// world frame
+    vel_vec = R*vel_vec;
 
     Matrix3d ders;
-    ders.block<3,1>(0,0) = dist_in;
-    ders.block<3,1>(0,1) = vel_in;
-    ders(0,2) = 0;
-    ders(1,2) = 0;
-    ders(2,2) = 0;
-
+    ders.block<3,1>(0,0) = dist_vec;
+    ders.block<3,1>(0,1) = vel_vec;
+    ders.block<3,1>(0,2) << 0,0,0;
     return ders;
 }
-
-/*
-return format is
- [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
-*/
-Matrix3d path_planner::get_after_ders(Vector3d hoopTransVec, Matrix3d hoopRotMat){
-    double d_after = .5;
-    double v_after = .5;
-
-    Matrix3d R = hoopRotMat;
-
-    // state relative to hoop after hoop
-    Vector3d dist_out(d_after, 0, 0);				// hoop frame
-    Vector3d vel_out(v_after, 0, 0);
-    dist_out = hoopTransVec + R*dist_out;			// world frame
-    vel_out = R*vel_out;
-
-    Matrix3d ders;
-    ders.block<3,1>(0,0) = dist_out;
-    ders.block<3,1>(0,1) = vel_out;
-    ders(0,2) = 0;
-    ders(1,2) = 0;
-    ders(2,2) = 0;
-
-    return ders;
-}
-
 
 
 /*
 return format is
  [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
 */
-Matrix3d path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTorque){
-
+Matrix3d path_planner::stateToPosDers(VectorXd& currentState, Vector4d& currentTorque){
     Matrix3d ders;
-
-    ders(0,0) = currentState[0];
-    ders(1,0) = currentState[1];
-    ders(2,0) = currentState[2];
-    ders(0,1) = currentState[3];
-    ders(1,1) = currentState[4];
-    ders(2,1) = currentState[5];
+    ders.block<3,1>(0,0) = currentState.block<3,1>(0,0);
+    ders.block<3,1>(0,1) = currentState.block<3,1>(3,0);
     double phi = currentState[6];
     double theta = currentState[7];
     double psi = currentState[8];
@@ -279,10 +249,8 @@ Matrix3d path_planner::stateToPosDers(VectorXd currentState, Vector4d currentTor
     ders(0,2) = -(sin(phi)*sin(psi) + cos(phi)*cos(psi)*sin(theta))*T/m;
     ders(1,2) = -(cos(phi)*sin(psi)*sin(theta) - cos(psi)*sin(psi))*T/m;
     ders(2,2) = -cos(phi)*cos(theta)*T/m + g;
-
     return ders;
 }
-
 
 
 /*
@@ -298,30 +266,28 @@ timeDiffs is a vector of length N-1, with the time intervalls between the states
 torques is a N by 4 matrix each row being [thrust, torquex, torquey, torquez].
 
 */
-void path_planner::jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
-
-
-    double dt = timeInterval/number_of_points;
+    double dt = time/(n+1);
 
     path.block<1,12>(0,0) = beginState;
     timeDiffs(0) = 0;
 
 
-    for(int i = 1; i < number_of_points; i++){  // time = i*dt
-
+    for(int i = 1; i <= n; i++){  // time = i*dt
+        int j = i-1;
         // calculate state at time
         path.block<1,3>(i,0) = pos.block<1,3>(i,0);
-        path.block<1,3>(i,3) = path.block<1,3>(i-1,3) + dt*jerk.block<1,3>(i,0);    // very incorrect.
+        path.block<1,3>(i,3) = vel.block<1,3>(i,0);
 
         double psi = 0;
         path(i,8) = psi;
-        path(i,7) = atan(jerk(i,1)*sin(psi) + jerk(i,0)*cos(psi))/(jerk(i,2) - g);
-        path(i,6) = atan((jerk(i,0)/jerk(i,1) - cos(psi)*tan(path(i,7)))*cos(path(i,7))/sin(psi));
-        double phi = path(i,6);
+        path(i,7) = atan(1/(g-acc(i,2)) * (acc(i,1)*sin(psi) - acc(i,0))/(1-2*pow(sin(psi),2)));
         double theta = path(i,7);
+        path(i,6) = atan(-acc(i,1)/(g-acc(i,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
+        double phi = path(i,6);
 
-        double phidot = (path(i,6) - path(i-1,6))/dt;
+        double phidot = (path(i,6) - path(i-1,6))/dt;       // this can be done better...
         double thetadot = (path(i,7) - path(i-1,7))/dt;
         double psidot = (path(i,8) - path(i-1,8))/dt;
 
@@ -340,55 +306,107 @@ void path_planner::jerkToPath(VectorXd beginState, MatrixXd pos, MatrixXd jerk, 
         timeDiffs(i) = dt;
 
         // calculate torques at time
-        torques(i,0) = (g - jerk(i,2))*m/(cos(phi)*cos(theta));
+        torques(i,0) = (g - jerk(j,2))*m/(cos(phi)*cos(theta));
         torques(i,1) = pdot*Ix + (Iz - Iy)*q*r;
         torques(i,2) = pdot*Iy + (Ix - Iz)*p*r;
         torques(i,3) = pdot*Iz + (Iy - Ix)*p*q;
 
-
     }
+    return validTorques(torques);
+
 }
 
 
-void path_planner::load_default_data(Vector3d beginState, Vector3d endState) {
-    double dt = timeInterval/number_of_points;
-    params.A[0] = 1;
+bool path_planner::validTorques(MatrixXd& torques){
+    double maxThrust = 25./4;  //Newton
+    double minThrust = 0;
+    for(int i = 0; i < torques.rows(); i++){
+        Vector4d torquesRow = torques.row(i);
+        Vector4d thrusts = torquesToThrusts(torquesRow);
+        for(int j = 0; j <= 3; j++){
+            if(thrusts(j) < minThrust || thrusts(j) > maxThrust){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+Vector4d path_planner::torquesToThrusts(Vector4d torques){
+    // solving torques = M*thrusts
+    double c_q = 2.42e-7;
+    double c_t = 8.048e-6;
+    double d = 0.12;
+    double b = c_q/c_t;
+    Matrix4d diag;
+    diag << 1,0,0,0, 0,d,0,0, 0,0,d,0, 0,0,0,b;
+    Matrix4d signs;
+    signs << 1,1,1,1, 1,1,-1,-1, 1,-1,-1,1, -1,1,-1,1;
+
+    Matrix4d M = diag*signs;
+    Vector4d thrusts = M.colPivHouseholderQr().solve(torques);
+    return thrusts;
+}
+
+
+void path_planner::load_data(double time, Vector3d beginState, Vector3d endState) {
+    double dt = time/(n+1);
+    /*
+    params.A[0] = 1.;
     params.A[1] = dt;
-    params.A[2] = pow(dt,2)/2;
-    params.A[3] = 0;
-    params.A[4] = 1;
+    params.A[2] = pow(dt,2)/2.;
+    params.A[3] = 0.;
+    params.A[4] = 1.;
     params.A[5] = dt;
-    params.A[6] = 0;
-    params.A[7] = 0;
+    params.A[6] = 0.;
+    params.A[7] = 0.;
+    params.A[8] = 1.;
+    params.B[0] = pow(dt,3)/6.;
+    params.B[1] = pow(dt,2)/2.;
+    params.B[2] = dt;
+     */
+
+    params.A[0] = 1;
+    params.A[1] = 0;
+    params.A[2] = 0;
+    params.A[3] = dt;
+    params.A[4] = 1;
+    params.A[5] = 0;
+    params.A[6] = pow(dt,2)/2;
+    params.A[7] = dt;
     params.A[8] = 1;
-    params.B[0] = pow(dt,3)/6;
-    params.B[1] = pow(dt,2)/2;
+    params.B[0] = pow(dt,3)/6.;
+    params.B[1] = pow(dt,2)/2.;
     params.B[2] = dt;
 
-    params.selectVelocity[0] = 0;
-    params.selectVelocity[1] = 1;
-    params.selectVelocity[2] = 0;
-    params.selectAcceleration[0] = 0;
-    params.selectAcceleration[1] = 0;
-    params.selectAcceleration[2] = 1;
 
-    params.min_vel[0] = -1;                  // not in paper
-    params.max_vel[0] = 1;                   // not in paper
-    params.min_acc[0] = -1;
-    params.max_acc[0] = 1;
-    params.min_jerk[0] = -1;
-    params.max_jerk[0] = 1;
+    //params.select_acc[0] = 0.;
+    //params.select_acc[1] = 0.;
+    //params.select_acc[2] = 1.;
+
+    //params.min_acc[0] = -1.;
+    //params.acc_dif[0] = 2.;
+    //params.min_jerk[0] = -1.;
+    //params.jerk_dif[0] = 2.;
 
     params.initial[0] = beginState[0];
     params.initial[1] = beginState[1];
     params.initial[2] = beginState[2];
+
     params.final[0] = endState[0];
     params.final[1] = endState[1];
     params.final[2] = endState[2];
 
+    //params.lambda[0] = 100000;
+    //params.lambda[1] = 10000;
+    //params.lambda[2] = 1000;
+    //params.mu[0] = 0;
+    //params.mu[1] = 0;
+    //params.mu[2] = 100000;
     return;
 }
 
+/*
 MatrixXd arrayToEigen(double* array, int rows, int columns){
     MatrixXd eigenMat(rows, columns);
 
@@ -400,3 +418,4 @@ MatrixXd arrayToEigen(double* array, int rows, int columns){
 
     return eigenMat;
 }
+*/
