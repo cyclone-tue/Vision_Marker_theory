@@ -14,7 +14,7 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
     if(displayPath) {
         MatrixXd points(path.rows(), path.cols());
 
-        writeDebug(path, "log", false);
+        //writeDebug(path, "log", false);
 
         vector<Point3d> cvPoints;
         for (int row = 0; row < points.rows(); row++) {
