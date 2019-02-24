@@ -40,7 +40,3 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
 
 
-
-
-
-

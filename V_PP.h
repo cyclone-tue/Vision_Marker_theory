@@ -44,6 +44,7 @@ extern "C" {
 
 
 // in logging.c :
+
 void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
 
 

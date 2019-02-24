@@ -99,6 +99,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
         // if at least one board marker detected
         if(valid > 0) {
             v_logger->debug("board found");
+
             foundMarker = true;
 
             aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvec, tvec, 0.1);
@@ -168,6 +169,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
             hoopTransVec = hoopPos_world;
             hoopRotMat = rot_hoopFrameToWorldFrame;
+
         }
     }
 

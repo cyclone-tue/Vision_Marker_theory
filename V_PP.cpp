@@ -16,6 +16,7 @@ std::shared_ptr<spdlog::logger> v_logger;
 
 
 void setup(const char* camera_calibration_file){
+<<<<<<< HEAD
 
     // log levels: trace, debug, info, warn, error, critical, off.
 
@@ -46,6 +47,14 @@ void setup(const char* camera_calibration_file){
     path_planner::init();
 
 
+=======
+    time_t t = time(0);
+    string now(ctime(&t));
+    //writeDebug("\n=========================== new setup() started at " + now + "\n");
+    vision::setupVariables(0, camera_calibration_file);
+    path_planner::init();
+    //writeDebug("setup done\n");
+>>>>>>> 81260a8167638d5c2e99a0bd2cc20cdaf8fc89ac
     return;
 }
 
@@ -87,14 +96,21 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
 
     bool success = runFrame(currentState, currentTorque, path, timeDiffs, torques);
     if(visualize){
-        runVisualize(currentState, path, success);
+        //runVisualize(currentState, path, success);
     }
     if(success) {
         *pathLength = path.rows();
         MatrixXd outputInfo(*pathLength, 3);
         outputInfo = path.block(0,0, path.rows(),3);
 
+<<<<<<< HEAD
         vpp_logger->debug("path: \n{}", outputInfo);
+=======
+        //writeDebug("path:\n");
+        //writeDebug(outputInfo);
+
+	cout << "Path:" << endl << outputInfo << endl;
+>>>>>>> 81260a8167638d5c2e99a0bd2cc20cdaf8fc89ac
 
         //copy path to output array
         double output_array[*pathLength][12 + 1 + 4];
@@ -120,7 +136,11 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
     if(foundHoop){
         success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
         if(not success){
+<<<<<<< HEAD
             vpp_logger->error("Path planning was unsuccessful...");
+=======
+            //writeDebug("Path planning was unsuccessful...\n");
+>>>>>>> 81260a8167638d5c2e99a0bd2cc20cdaf8fc89ac
         }
     }
     return success;
@@ -140,10 +160,16 @@ VectorXd arrayToEigen(double* array, int length){
 
 void test_PP(){
 
+<<<<<<< HEAD
     setup("Vision/laptop_calibration.txt");
 
     vpp_logger->info("Starting test_PP()");
 
+=======
+    time_t t = time(0);
+    string now(ctime(&t));
+    //writeDebug("\n========================== new test_PP() started at " + now + "\n");
+>>>>>>> 81260a8167638d5c2e99a0bd2cc20cdaf8fc89ac
 
     VectorXd currentState(12);  // input variables
     Vector4d currentTorque;
@@ -163,6 +189,7 @@ void test_PP(){
     MatrixXd outputInfo(path.rows(), 12+1+4);
     outputInfo << path, timeDiffs, torques;
 
+<<<<<<< HEAD
     vpp_logger->debug("path, timeDiffs, torques: \n{}", outputInfo);
 
     if(not success){
@@ -170,6 +197,16 @@ void test_PP(){
     }
 
     vpp_logger->info("End of test.");
+=======
+    //writeDebug("outputInfo:\n");
+    //writeDebug(outputInfo);
+
+    if(not success){
+        //writeDebug("Test was unsuccessful...\n");
+    }
+
+    //writeDebug("End of test.\n");
+>>>>>>> 81260a8167638d5c2e99a0bd2cc20cdaf8fc89ac
     return;
 }
 

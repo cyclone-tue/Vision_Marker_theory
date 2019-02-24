@@ -49,7 +49,6 @@ hoopRotMat = rotation from hoop frame to world frame.
 */
 bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
-
     pp_logger->debug("currentState : \n {}", currentState);
     pp_logger->debug("currentTorque : \n{}", currentTorque);
     pp_logger->debug("hoopTransVec : \n{}", hoopTransVec);
