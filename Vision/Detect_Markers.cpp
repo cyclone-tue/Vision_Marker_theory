@@ -1,5 +1,7 @@
 #include "DetectMarker.h"
 #include <ctime>
+#include "../logging.h"
+#include "spdlog/fmt/ostr.h"
 
 VideoCapture cap;
 //Videowriter debugStream;
@@ -42,11 +44,10 @@ namespace {
 
 
 bool vision::readCameraParameters(String filename, OutputArray cameraMat, OutputArray distCoefficients){ // not OutputArray
-    cout << "Opening file: " << filename << endl;
     FileStorage fs(filename, FileStorage::READ);
     if(!fs.isOpened()){
         fs.release();
-        cout << "Could not open file: " << filename << endl;
+        v_logger->error("Could not open file: {}", filename);
         return false;
     }
 
@@ -80,7 +81,6 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
     //At least one marker detected
     if (!ids.empty()) {
-        //cout << "detected a marker" << endl;
         aruco::drawDetectedMarkers(imageCopy, corners, ids);
         Vec3d rvec, tvec;
 
@@ -98,7 +98,8 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
         // if at least one board marker detected
         if(valid > 0) {
-            writeDebug("\nboard found.\n");
+            v_logger->debug("board found");
+
             foundMarker = true;
 
             aruco::drawAxis(imageCopy, cameraMatrix, distCoef, rvec, tvec, 0.1);
@@ -164,15 +165,11 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
             double y = pos.at<double>(1, 0);
             double z = pos.at<double>(2, 0);
 
-            //cout << "x " << x << ", y : " << y << ", z :" << z <<  ", yaw: " << yaw/M_PI*180 << ", pitch: " << pitch/M_PI*180 << ", roll: " << roll/M_PI*180 << endl;
             */
 
             hoopTransVec = hoopPos_world;
             hoopRotMat = rot_hoopFrameToWorldFrame;
-            writeDebug("hoopTransVec:\n", "log", false);
-            writeDebug(hoopTransVec, "log", false);
-            writeDebug("hoopRotMat:\n", "log", false);
-            writeDebug(hoopRotMat, "log" , false);
+
         }
     }
 
@@ -253,7 +250,8 @@ double* vision::MatrixToArray(MatrixXd m) {
 
 void vision::setupVariables(int camera, const char* calibrationFile){
     String filename = String(calibrationFile);
-    cout << "Opening camera " << camera << endl;
+    v_logger->info("Opening camera {}", camera);
+
 
     cap = VideoCapture();
     cap.open(camera);
@@ -270,15 +268,12 @@ void vision::setupVariables(int camera, const char* calibrationFile){
 
     //debugStream.open("appsrc use-damage=false ! videoconvert ! videoscale ! vp8enc ! rtpvp8pay ! udpsink host=localhost port=9999", 0, (double)30, Size(640, 480), true);
 
-    cout << "Reading camera parameters" << endl;
-    cout << "Calibration file is" << filename << endl;
+    v_logger->info("Reading camera parameters");
+    v_logger->info("Calibration file is {}", filename);
 
 
     if(!vision::readCameraParameters(filename, cameraMatrix, distCoef)){
-        cout << "Could not load camera calibration file: " << calibrationFile << endl;
-    }else{
-        //cout << cameraMatrix << endl;
-        //cout << distCoef << endl;
+        v_logger->error("Could not load camera calibration file: {}", calibrationFile);
     }
 
 
@@ -296,10 +291,10 @@ void vision::setupVariables(int camera, const char* calibrationFile){
     String outFilename;
     outFilename = converter.str();
     //String outFilename = "Field_test-"  + to_string(localTime->tm_mday) + "-" + to_string(localTime->tm_mon) + "-" + to_string(localTime->tm_year) + "_" + to_string(localTime->tm_hour) + ":" + to_string(localTime->tm_min) + ":" + to_string(localTime->tm_sec) + ".mp4";
-    cout << "Writing to video file: " << outFilename.c_str() << endl;
+    v_logger->info("Writing to video file: {}", outFilename.c_str());
     debugWriter = VideoWriter(outFilename.c_str(), codec, 25.0, Size(testFrame.cols, testFrame.rows), true);
     if(!debugWriter.isOpened()){
-        cout << "Could not open video writer!" << endl;
+        v_logger->error("Could not open video writer!");
     }
 }
 

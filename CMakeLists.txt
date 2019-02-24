@@ -1,18 +1,24 @@
 cmake_minimum_required(VERSION 3.5)
 project(Marker_Vision)
 
-set(CMAKE_MODULE_PATH /usr/local/lib/cmake)
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")       #https://github.com/facebook/Surround360/issues/3
+
+#set(CMAKE_MODULE_PATH /usr/local/lib/cmake)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 include_directories(/usr/local/lib)
 set(CMAKE_CXX_STANDARD 11)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+#list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")       # this results in a nonexistent folder. why?
+#message(${CMAKE_MODULE_PATH})
 
 find_package(OpenCV REQUIRED)
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED)   # is found because Eigen3_DIR is set. 1: When was it set? 2: How did the configuration files end up at Eigen3_DIR? Type "$ cmake -LAH" in folder of CMakeLists.txt.
+#find_package(spdlog REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 list(APPEND OpenCV_LIBS opencv_aruco)
 include_directories(${OPENCV_INCLUDE_DIRS})
+include_directories(~/spdlog/include)       # v1.3.1
 add_library(opencv INTERFACE IMPORTED)
 set_property(TARGET opencv PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENCV_INCLUDE_DIR})
 
