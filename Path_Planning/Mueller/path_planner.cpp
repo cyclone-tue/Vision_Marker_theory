@@ -1,5 +1,6 @@
 #include "path_planner.h"
-
+#include "../../logging.h"
+#include "spdlog/fmt/ostr.h"
 
 Vars vars;
 Params params;
@@ -25,7 +26,7 @@ namespace {
 
     double d_before = -.5;
     double v_before = .5;
-    double d_after = .5;
+    double d_after = 1;
     double v_after = .5;
 }
 
@@ -48,14 +49,12 @@ hoopRotMat = rotation from hoop frame to world frame.
 */
 bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
 
-    writeDebug("currentState: \n");
-    writeDebug(currentState);
-    writeDebug("currentTorque: \n");
-    writeDebug(currentTorque);
-    writeDebug("hoopTransVec: \n");
-    writeDebug(hoopTransVec);
-    writeDebug("hoopRotMat: \n");
-    writeDebug(hoopRotMat);
+
+    pp_logger->debug("currentState : \n {}", currentState);
+    pp_logger->debug("currentTorque : \n{}", currentTorque);
+    pp_logger->debug("hoopTransVec : \n{}", hoopTransVec);
+    pp_logger->debug("hoopRotMat : \n{}", hoopRotMat);
+
 
     MatrixXd pathPart(n + 1, 12);       // including begin and excluding end point.
     VectorXd timeDiffsPart(n + 1);
@@ -70,13 +69,16 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
 
     // set up the constraints
     MatrixXd allConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat);
-    //writeDebug("constraints:\n");
-    //
-    // writeDebug(allConstraints);
+
+    pp_logger->debug("constraints :\n {}", allConstraints);
+
     int waypoints = (int) allConstraints.cols() / 3 - 1;
 
     beginState = currentState;
     for (int i = 0; i <= waypoints; i++) {							// iterate over path intervals.
+
+        pp_logger->debug("Starting path segment {}", i+1);
+
         constraintsPart = allConstraints.block<6,3>(0, i*3);
 
         double t_max = 30;
@@ -88,9 +90,10 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
             } else{
                 t_min = t;
             }
+
         }
         success &= getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
-
+        pp_logger->debug("getPathSegment() returns {} with time {}", success, t_max);
 
         // set up beginState for next iteration
         beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);   // never calculated correctly due to incomplete jerkToPath().
@@ -146,7 +149,7 @@ bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd&
     VectorXd jerkCol(n+1);
     bool success = true;
 
-    success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol);  // excludes end point
+    success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol);  // includes end point (should have n+2 elements)
     pos.col(0) = posCol;
     vel.col(0) = velCol;
     acc.col(0) = accCol;
@@ -162,13 +165,9 @@ bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd&
     acc.col(2) = accCol;
     jerk.col(2) = jerkCol;
 
-    //writeDebug("acc: \n");
-    //writeDebug(acc);
-    //writeDebug(pos);
-    //writeDebug("vel: \n");
-    //writeDebug(vel);
-    //writeDebug("jerk: \n");
-    //writeDebug(jerk);
+    if(not success){
+        pp_logger->error("getSegment1D() returns {}", success);
+    }
 
     success &= jerkToPath(time, currentState, pos, vel, acc, jerk, path, timeDiffs, torques);  // excludes end point
 
@@ -272,11 +271,12 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
     double dt = time/(n+1);
 
     path.block<1,12>(0,0) = beginState;
-    timeDiffs(0) = 0;
+    timeDiffs(0) = dt;
 
 
     for(int i = 1; i <= n; i++){  // time = i*dt
         int j = i-1;
+
         // calculate state at time
         path.block<1,3>(i,0) = pos.block<1,3>(i,0);
         path.block<1,3>(i,3) = vel.block<1,3>(i,0);
@@ -297,7 +297,7 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
         path(i,11) = cos(phi)*cos(theta)*psidot - sin(phi)*thetadot;
         double p = path(i,9);
         double q = path(i,10);
-        double r = path(1,11);
+        double r = path(i,11);
 
         double pdot = (path(i,9) - path(i-1,9))/dt;
         double qdot = (path(i,10) - path(i-1,10))/dt;
@@ -307,12 +307,34 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
         timeDiffs(i) = dt;
 
         // calculate torques at time
-        torques(i,0) = (g - jerk(j,2))*m/(cos(phi)*cos(theta));
-        torques(i,1) = pdot*Ix + (Iz - Iy)*q*r;
-        torques(i,2) = pdot*Iy + (Ix - Iz)*p*r;
-        torques(i,3) = pdot*Iz + (Iy - Ix)*p*q;
-
+        torques(j,0) = (g - jerk(j,2))*m/(cos(phi)*cos(theta));
+        torques(j,1) = pdot*Ix + (Iz - Iy)*q*r;
+        torques(j,2) = qdot*Iy + (Ix - Iz)*p*r;
+        torques(j,3) = rdot*Iz + (Iy - Ix)*p*q;
     }
+
+
+    double psi = 0;
+    double theta = atan(1/(g-acc(n+1,2)) * (acc(n+1,1)*sin(psi) - acc(n+1,0))/(1-2*pow(sin(psi),2)));
+    double phi = atan(-acc(n+1,1)/(g-acc(n+1,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
+
+    double phidot = (phi - path(n,6))/dt;       // this can be done better...
+    double thetadot = (theta - path(n,7))/dt;
+    double psidot = (psi - path(n,8))/dt;
+
+    double p = phidot + (2*pow(sin(phi),2) - sin(theta))*psidot;
+    double q = cos(psi)*thetadot + sin(phi)*cos(theta)*psidot;
+    double r = cos(phi)*cos(theta)*psidot - sin(phi)*thetadot;
+
+    double pdot = (p - path(n,9))/dt;
+    double qdot = (q - path(n,10))/dt;
+    double rdot = (r - path(n,11))/dt;
+
+    torques(n,0) = (g - jerk(n,2))*m/(cos(phi)*cos(theta));
+    torques(n,1) = pdot*Ix + (Iz - Iy)*q*r;
+    torques(n,2) = qdot*Iy + (Ix - Iz)*p*r;
+    torques(n,3) = rdot*Iz + (Iy - Ix)*p*q;
+
     return validTorques(torques);
 
 }

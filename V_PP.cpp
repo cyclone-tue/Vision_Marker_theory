@@ -1,19 +1,51 @@
 
 
 #include "V_PP.h"
+#include "spdlog/fmt/ostr.h"
 
 
 
 // ==== functions to be called from python scripts ====
 
 
+namespace spd = spdlog;
+
+std::shared_ptr<spdlog::logger> vpp_logger;
+std::shared_ptr<spdlog::logger> pp_logger;
+std::shared_ptr<spdlog::logger> v_logger;
+
+
 void setup(const char* camera_calibration_file){
-    time_t t = time(0);
-    string now(ctime(&t));
-    writeDebug("\n=========================== new setup() started at " + now + "\n");
+
+    // log levels: trace, debug, info, warn, error, critical, off.
+
+    // create the sinks
+    auto console_sink = std::make_shared<spd::sinks::stdout_color_sink_mt>();
+    auto vpp_sink = std::make_shared<spd::sinks::basic_file_sink_mt>("logs/V_PP.txt");
+    console_sink->set_level(spdlog::level::info);
+    vpp_sink->set_level(spdlog::level::trace);
+
+    std::vector<spdlog::sink_ptr> sinks;
+    sinks.push_back(console_sink);
+    sinks.push_back(vpp_sink);
+
+
+    // create the loggers
+    vpp_logger = std::make_shared<spdlog::logger>("V_PP", begin(sinks), end(sinks));
+    pp_logger = std::make_shared<spdlog::logger>("PP", begin(sinks), end(sinks));
+    v_logger = std::make_shared<spdlog::logger>("V", begin(sinks), end(sinks));
+
+    vpp_logger->set_level(spdlog::level::trace);
+    pp_logger->set_level(spdlog::level::trace);
+    v_logger->set_level(spdlog::level::trace);
+
+
+    vpp_logger->info("=============================== Running setup() ===");
+
     vision::setupVariables(0, camera_calibration_file);
     path_planner::init();
-    writeDebug("setup done\n");
+
+
     return;
 }
 
@@ -62,8 +94,7 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
         MatrixXd outputInfo(*pathLength, 3);
         outputInfo = path.block(0,0, path.rows(),3);
 
-        writeDebug("path:\n");
-        writeDebug(outputInfo);
+        vpp_logger->debug("path: \n{}", outputInfo);
 
         //copy path to output array
         double output_array[*pathLength][12 + 1 + 4];
@@ -89,7 +120,7 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
     if(foundHoop){
         success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
         if(not success){
-            writeDebug("Path planning was unsuccessful...\n");
+            vpp_logger->error("Path planning was unsuccessful...");
         }
     }
     return success;
@@ -109,9 +140,10 @@ VectorXd arrayToEigen(double* array, int length){
 
 void test_PP(){
 
-    time_t t = time(0);
-    string now(ctime(&t));
-    writeDebug("\n========================== new test_PP() started at " + now + "\n");
+    setup("Vision/laptop_calibration.txt");
+
+    vpp_logger->info("Starting test_PP()");
+
 
     VectorXd currentState(12);  // input variables
     Vector4d currentTorque;
@@ -131,20 +163,19 @@ void test_PP(){
     MatrixXd outputInfo(path.rows(), 12+1+4);
     outputInfo << path, timeDiffs, torques;
 
-    writeDebug("outputInfo:\n");
-    writeDebug(outputInfo);
+    vpp_logger->debug("path, timeDiffs, torques: \n{}", outputInfo);
 
     if(not success){
-        writeDebug("Test was unsuccessful...\n");
+        vpp_logger->error("Test was unsuccessful...");
     }
 
-    writeDebug("End of test.\n");
+    vpp_logger->info("End of test.");
     return;
 }
 
 
 void test_V_PP(){
-    setup("../laptop_calibration.txt");
+    setup("Vision/laptop_calibration.txt");
 
     double currentState [12] = {0,0,0, 0,0,0, 0,0,0, 0,0,0};
     double currentTorque [4] = {0,0,0,0};
