@@ -114,7 +114,7 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
     Vector3d hoopTransVec;
     Matrix3d hoopRotMat;
 
-    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
+    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);       // should be returned in world frame, instead of body frame.
     if(foundHoop){
         success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
         if(not success){
