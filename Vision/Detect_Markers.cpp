@@ -170,15 +170,18 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
             // here a transformation to world frame should take place. (from body frame, which is called world frame above).
 
-            Vector3d bodyTransVec = currentState.block<3,1>(0,0);
-            hoopPos_world += bodyTransVec;
+            //Vector3d bodyTransVec = currentState.block<3,1>(0,0);
+            //pp_logger->debug("bodyTransVec in world frame is {}", bodyTransVec);
+            //pp_logger->debug("hoop position in body frame is {}", hoopPos_world);
+            //hoopPos_world += bodyTransVec;
+            //pp_logger->debug("final hoop position is {}", hoopPos_world);
 
             Matrix3d bodyFrameToWorldFrame;
             bodyFrameToWorldFrame = anglesToRotMatXYZ(currentState(6), currentState(7), currentState(8));
 
             hoopTransVec = hoopPos_world;
-            hoopRotMat = bodyFrameToWorldFrame*rot_hoopFrameToWorldFrame;
-
+            //hoopRotMat = bodyFrameToWorldFrame*rot_hoopFrameToWorldFrame;
+            hoopRotMat = rot_hoopFrameToWorldFrame;
         }
     }
 
