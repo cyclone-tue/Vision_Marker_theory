@@ -175,7 +175,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
             Matrix3d bodyFrameToWorldFrame;
             bodyFrameToWorldFrame = anglesToRotMatXYZ(currentState(6), currentState(7), currentState(8));
-            
+
             hoopTransVec = hoopPos_world;
             hoopRotMat = bodyFrameToWorldFrame*rot_hoopFrameToWorldFrame;
 
