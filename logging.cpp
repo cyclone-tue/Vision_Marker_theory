@@ -14,7 +14,6 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
     if(displayPath) {
         MatrixXd points(path.rows(), path.cols());
 
-
         vector<Point3d> cvPoints;
         for (int row = 0; row < points.rows(); row++) {
             cvPoints.push_back(Point3d(path(row, 0), path(row, 1), path(row, 2)));
@@ -23,11 +22,17 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
         vector<Point2d> imagePoints;
         vision::projectPointsOntoCam(cvPoints, currentState, imagePoints);
 
-
         for (int j = 0; j < imagePoints.size() - 1; j++) {
-            line(frame, imagePoints[j], imagePoints[j + 1], Scalar(int(255 / imagePoints.size() * j), 0,
-                                                                   int(255 / imagePoints.size() *
-                                                                       (imagePoints.size() - j))), 3);
+
+            Point point0 = imagePoints[j];
+            Point point1 = imagePoints[j+1];
+
+            if(clipLine(Size(frame.cols, frame.rows), point0, point1)){
+                line(frame, point0, point1, Scalar(int(255 / imagePoints.size() * j), 0,
+                                                                       int(255 / imagePoints.size() *
+                                                                           (imagePoints.size() - j))), 3);
+            }
+
         }
 
     }

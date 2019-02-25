@@ -2,3 +2,12 @@
 \.idea/
 
 cmake-build-debug/
+
+*.mp4
+Makefile
+Marker_Vision.cbp
+V_PP
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+logs/V_PP.txt

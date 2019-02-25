@@ -87,7 +87,7 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
 
     bool success = runFrame(currentState, currentTorque, path, timeDiffs, torques);
     if(visualize){
-        //runVisualize(currentState, path, success);
+        runVisualize(currentState, path, success);
     }
     if(success) {
         *pathLength = path.rows();
@@ -172,9 +172,10 @@ void test_PP(){
 
 void test_V_PP(){
     setup("Vision/laptop_calibration.txt");
+    vpp_logger->info("Starting test_V_PP()");
 
     double currentState [12] = {0,0,0, 0,0,0, 0,0,0, 0,0,0};
-    double currentTorque [4] = {0,0,0,0};
+    double currentTorque [4] = {20,0,0,0};
     int* pathLength = new int(1);
     bool visualize = true;
 
@@ -187,6 +188,6 @@ void test_V_PP(){
 
 
 int main(){
-    test_PP();
+    test_V_PP();
     return 0;
 }
