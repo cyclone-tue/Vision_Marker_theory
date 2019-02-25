@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.5)
+include(ExternalProject)
+find_package(Git REQUIRED)
+
+ExternalProject_Add(
+    spdlog
+    PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    TIMEOUT 10
+    UPDATE_COMMAND ${GIT_EXECUTABLE} pull
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD ON
+)
+
+ExternalProject_Get_Property(spdlog source_dir)
+set(SPDLOG_INCLUDE_DIR ${source_dir}/spdlog/include/spdlog CACHE INTERNAL "Path to include folder for spdlog")
+set(SPDLOG_ROOT_DIR ${source_dir}/spdlog CACHE INTERNAL "Path to source folder")
+include_directories(${INCLUDE_DIRECTORIES} ${SPDLOG_INCLUDE_DIR} ${SPDLOG_ROOT_DIR})
+message(${SPDLOG_INCLUDE_DIR})

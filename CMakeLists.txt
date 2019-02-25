@@ -5,8 +5,9 @@ set(CMAKE_MODULE_PATH /usr/local/lib/cmake)
 set(CMAKE_BUILD_TYPE RelWithDebInfo)
 include_directories(/usr/local/lib)
 set(CMAKE_CXX_STANDARD 11)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake.modules/")
+#list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+include(cmake.modules/AddSPDlog.txt)
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -34,6 +35,7 @@ add_executable(V_PP Path_Planning/Mueller/cvxgen/solver.c Vision/CircleBoard.cpp
 #add_library(CycloneVision MODULE Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
 add_library(CycloneVision MODULE Path_Planning/Mueller/cvxgen/solver.c Vision/CircleBoard.cpp ${CVXGEN}/ldl.c ${CVXGEN}/matrix_support.c ${CVXGEN}/util.c V_PP.cpp Path_Planning/path_planner.cpp Path_Planning/Mueller/path_planner.cpp Vision/Detect_Markers.cpp V_PP.h)
 #add_executable(WebcamTest webcam_test.cpp)
+
 
 #target_link_libraries(GenerateMarker ${OpenCV_LIBS})
 #target_link_libraries(DetectMarker ${OpenCV_LIBS})
