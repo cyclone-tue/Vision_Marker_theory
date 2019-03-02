@@ -11,4 +11,4 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 logs/V_PP.txt
-lib/spdlog
+lib/*
