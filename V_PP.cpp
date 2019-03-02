@@ -136,7 +136,6 @@ VectorXd arrayToEigen(double* array, int length){
 void test_PP(){
 
     setup("Vision/laptop_calibration.txt");
-
     vpp_logger->info("Starting test_PP()");
 
 
@@ -188,6 +187,6 @@ void test_V_PP(){
 
 
 int main(){
-    test_V_PP();
+    test_PP();
     return 0;
 }
