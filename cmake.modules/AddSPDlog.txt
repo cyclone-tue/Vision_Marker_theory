@@ -15,7 +15,8 @@ ExternalProject_Add(
 )
 
 ExternalProject_Get_Property(spdlog source_dir)
-set(SPDLOG_INCLUDE_DIR ${source_dir}/spdlog/include/spdlog CACHE INTERNAL "Path to include folder for spdlog")
+set(SPDLOG_INCLUDE_DIR ${source_dir}/spdlog/include CACHE INTERNAL "Path to include folder for spdlog")
 set(SPDLOG_ROOT_DIR ${source_dir}/spdlog CACHE INTERNAL "Path to source folder")
 include_directories(${INCLUDE_DIRECTORIES} ${SPDLOG_INCLUDE_DIR} ${SPDLOG_ROOT_DIR})
 message(${SPDLOG_INCLUDE_DIR})
+

@@ -7,11 +7,13 @@
 
 
 #include "spdlog/spdlog.h"
+//#include "gnuplot-iostream.h"
 
 
 extern std::shared_ptr<spdlog::logger> vpp_logger;
 extern std::shared_ptr<spdlog::logger> pp_logger;
 extern std::shared_ptr<spdlog::logger> v_logger;
+//extern Gnuplot gp;
 
 
 
