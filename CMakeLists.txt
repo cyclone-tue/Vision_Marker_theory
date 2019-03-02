@@ -80,3 +80,4 @@ target_link_libraries(V_PP ${OpenCV_LIBS})
 
 # something else
 add_dependencies(CycloneVision opencv)
+add_dependencies(V_PP spdlog)
