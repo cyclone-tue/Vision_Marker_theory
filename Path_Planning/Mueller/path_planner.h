@@ -5,11 +5,13 @@
 #include <iostream>
 #include "../../constants.h"
 
-#include "../../V_PP.h"
+
+//#include "../../V_PP.h"
 
 extern "C" {
     #include "cvxgen/solver.h"
 }
+
 
 using Eigen::MatrixXd;
 using Eigen::Matrix3d;
@@ -33,6 +35,7 @@ class path_planner{
     public:
         static void init();
         static void release();
+
 
         /*
         Let the hoop coordinate frame be as follows:
@@ -68,7 +71,8 @@ class path_planner{
         static bool validTorques(MatrixXd& torques);
         static Vector4d torquesToThrusts(Vector4d torques);
         static void load_data(double time, Vector3d beginState, Vector3d endState);
-    };
+};
+
 /*
 jiroe MatrixXd arrayToEigen(double* array, int rows, int columns);
 */

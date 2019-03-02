@@ -14,4 +14,5 @@ namespace {
     double m = 2;
 }
 
+
 #endif //MARKER_VISION_CONSTANTS_H
