@@ -31,7 +31,6 @@ using namespace std;
 using namespace Eigen;
 
 
-
 bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
 VectorXd arrayToEigen(double* array, int length);
 int main();
@@ -42,10 +41,10 @@ extern "C" {
     void cleanup();
 }
 
-
 // in logging.c :
 
 void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
+
 
 
 #endif //MARKER_VISION_V_PP_H

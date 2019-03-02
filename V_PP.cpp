@@ -168,7 +168,6 @@ void test_PP(){
     return;
 }
 
-
 void test_V_PP(){
     setup("Vision/laptop_calibration.txt");
     vpp_logger->info("Starting test_V_PP()");
@@ -190,3 +189,4 @@ int main(){
     test_PP();
     return 0;
 }
+

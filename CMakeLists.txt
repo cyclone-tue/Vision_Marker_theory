@@ -9,8 +9,9 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 include_directories(/usr/local/lib)
 set(CMAKE_CXX_STANDARD 11)
 
-#list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")       # this results in a nonexistent folder. why?
-#message(${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake.modules/")
+#list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+include(cmake.modules/AddSPDlog.txt)
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)   # is found because Eigen3_DIR is set. 1: When was it set? 2: How did the configuration files end up at Eigen3_DIR? Type "$ cmake -LAH" in folder of CMakeLists.txt.
@@ -28,8 +29,6 @@ macro( config_project PROJNAME LIBNAME )
 endmacro()
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
-
-
 
 #add_executable(GenerateMarker Vision/Generate_Markers.cpp)
 #add_executable(DetectMarker Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
@@ -60,10 +59,9 @@ add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp logging.cpp)
 #target_link_libraries(DetectMarker ${OpenCV_LIBS})
 #target_link_libraries(CalibrateCamera ${OpenCV_LIBS})
 #target_link_libraries(CreateCalibration ${OpenCV_LIBS})
-target_link_libraries(CycloneVision ${OpenCV_LIBS})
 
+target_link_libraries(CycloneVision ${OpenCV_LIBS})
 target_link_libraries(V_PP ${OpenCV_LIBS})
 #target_link_libraries(WebcamTest ${OpenCV_LIBS})
-
 
 add_dependencies(CycloneVision opencv)

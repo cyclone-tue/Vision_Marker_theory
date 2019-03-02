@@ -2,11 +2,11 @@
 #include "../../logging.h"
 #include "spdlog/fmt/ostr.h"
 
+
 Vars vars;
 Params params;
 Workspace work;
 Settings settings;
-
 
 
 /*
@@ -249,6 +249,7 @@ Matrix3d path_planner::stateToPosDers(VectorXd& currentState, Vector4d& currentT
     ders(1,2) = -(cos(phi)*sin(psi)*sin(theta) - cos(psi)*sin(psi))*T/m;
     ders(2,2) = -cos(phi)*cos(theta)*T/m + g;
     return ders;
+
 }
 
 
@@ -297,6 +298,7 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
         double p = path(i,9);
         double q = path(i,10);
         double r = path(i,11);
+
 
         double pdot = (path(i,9) - path(i-1,9))/dt;
         double qdot = (path(i,10) - path(i-1,10))/dt;
@@ -429,6 +431,7 @@ void path_planner::load_data(double time, Vector3d beginState, Vector3d endState
 }
 
 /*
+
 MatrixXd arrayToEigen(double* array, int rows, int columns){
     MatrixXd eigenMat(rows, columns);
 
@@ -439,5 +442,6 @@ MatrixXd arrayToEigen(double* array, int rows, int columns){
     }
 
     return eigenMat;
+
 }
 */

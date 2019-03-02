@@ -3,6 +3,7 @@
 #include "../logging.h"
 #include "spdlog/fmt/ostr.h"
 
+
 VideoCapture cap;
 //Videowriter debugStream;
 Mat cameraMatrix;
@@ -44,6 +45,7 @@ namespace {
 
 
 bool vision::readCameraParameters(String filename, OutputArray cameraMat, OutputArray distCoefficients){ // not OutputArray
+
     FileStorage fs(filename, FileStorage::READ);
     if(!fs.isOpened()){
         fs.release();
@@ -81,6 +83,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
 
     //At least one marker detected
     if (!ids.empty()) {
+
         aruco::drawDetectedMarkers(imageCopy, corners, ids);
         Vec3d rvec, tvec;
 
@@ -93,6 +96,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
         // this frame is thus right handed.
 
         int valid = aruco::estimatePoseBoard(corners, ids, board, cameraMatrix, distCoef, rvec, tvec);  // get rvec and tvec in camera frame.
+
         //The returned transformation is the one that transforms points from the board coordinate system to the camera coordinate system.
 
 
@@ -131,6 +135,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
             Vector3d camPos_world = currentState.block<3,1>(0,0);
             Matrix3d rot_camFrameToWorldFrame = anglesToRotMatXYZ(currentState(6), currentState(7), currentState(8));
 
+
             Vector3d hoopPos_world = rot_camFrameToWorldFrame*hoopPos_camera + camPos_world;            // calculate the board position in world frame.
             Matrix3d rot_hoopFrameToWorldFrame = rot_camFrameToWorldFrame*rot_hoopFrameToCamFrame;    // calculate the rotation matrix from hoop frame to world frame.
 
@@ -164,7 +169,6 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
             double x = pos.at<double>(0, 0);
             double y = pos.at<double>(1, 0);
             double z = pos.at<double>(2, 0);
-
             */
 
 
@@ -182,6 +186,7 @@ bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopR
             hoopTransVec = hoopPos_world;
             //hoopRotMat = bodyFrameToWorldFrame*rot_hoopFrameToWorldFrame;
             hoopRotMat = rot_hoopFrameToWorldFrame;
+
         }
     }
 
@@ -264,7 +269,6 @@ void vision::setupVariables(int camera, const char* calibrationFile){
     String filename = String(calibrationFile);
     v_logger->info("Opening camera {}", camera);
 
-
     cap = VideoCapture();
     cap.open(camera);
 
@@ -334,8 +338,6 @@ void vision::projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentSta
     }
 
     projectPoints(points, Vec3d(0, 0, 0), Vec3d(0, 0, 0), cameraMatrix, distCoef, imagePoints);
-
-
     return;
 }
 
@@ -351,3 +353,4 @@ void vision::writeVideo(Mat frame){
         debugWriter.write(frame);
     }
 }
+
