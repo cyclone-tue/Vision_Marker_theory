@@ -69,7 +69,6 @@ class path_planner{
         static Matrix3d stateToPosDers(VectorXd& currentState, Vector4d& currentTorque);
         static bool jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
         static bool validTorques(MatrixXd& torques);
-        static Vector4d torquesToThrusts(Vector4d torques);
         static void load_data(double time, Vector3d beginState, Vector3d endState);
 };
 

@@ -13,7 +13,7 @@ namespace spd = spdlog;
 std::shared_ptr<spdlog::logger> vpp_logger;
 std::shared_ptr<spdlog::logger> pp_logger;
 std::shared_ptr<spdlog::logger> v_logger;
-
+Gnuplot gp;
 
 void setup(const char* camera_calibration_file){
 
@@ -154,17 +154,25 @@ void test_PP(){
 
     bool success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
 
-    MatrixXd outputInfo(path.rows(), 12+1+4);
-    outputInfo << path, timeDiffs, torques;
+    MatrixXd thrusts(torques.rows(), 4);
+    for(int i = 0; i < torques.rows(); i++){
+        Vector4d torquesRow = torques.block<1,4>(i,0);
+        thrusts.block<1,4>(i,0) = torquesToThrusts(torquesRow);
+    }
+
+    MatrixXd outputInfo(path.rows(), 12+1+4+4);
+    outputInfo << path, timeDiffs, torques, thrusts;
 
     vpp_logger->debug("path, timeDiffs, torques: \n{}", outputInfo);
+
+
+    showPathInteractive(path, timeDiffs, hoopTransVec, hoopRotMat);
+
 
     if(not success){
         vpp_logger->error("Test was unsuccessful...");
     }
-
     vpp_logger->info("End of test.");
-
     return;
 }
 

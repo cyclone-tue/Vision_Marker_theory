@@ -5,15 +5,23 @@
 #ifndef MARKER_VISION_LOGGING_H
 #define MARKER_VISION_LOGGING_H
 
+#include <fstream>
+#include <vector>
+#include <map>
+#include <limits>
+#include <cmath>
+#include <cstdio>
+#include <boost/tuple/tuple.hpp>
+#include <boost/foreach.hpp>
 
 #include "spdlog/spdlog.h"
-//#include "gnuplot-iostream.h"
+#include "gnuplot-iostream.h"
 
 
 extern std::shared_ptr<spdlog::logger> vpp_logger;
 extern std::shared_ptr<spdlog::logger> pp_logger;
 extern std::shared_ptr<spdlog::logger> v_logger;
-//extern Gnuplot gp;
+extern Gnuplot gp;
 
 
 

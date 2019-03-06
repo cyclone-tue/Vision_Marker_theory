@@ -3,10 +3,10 @@ include(ExternalProject)
 find_package(Git REQUIRED)
 
 ExternalProject_Add(
-    spdlog
+    gnuplot
     PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.x
+    GIT_REPOSITORY https://github.com/dstahlke/gnuplot-iostream.git
+    GIT_TAG master
     TIMEOUT 10
     UPDATE_COMMAND ${GIT_EXECUTABLE} pull
     CONFIGURE_COMMAND ""
@@ -15,9 +15,7 @@ ExternalProject_Add(
     LOG_DOWNLOAD ON
 )
 
-ExternalProject_Get_Property(spdlog source_dir)
-set(SPDLOG_INCLUDE_DIR ${source_dir}/include CACHE INTERNAL "Path to include folder for spdlog")
-set(SPDLOG_ROOT_DIR ${source_dir}/spdlog CACHE INTERNAL "Path to source folder")
-include_directories(${INCLUDE_DIRECTORIES} ${SPDLOG_INCLUDE_DIR} ${SPDLOG_ROOT_DIR})
+ExternalProject_Get_Property(gnuplot source_dir)
+include_directories(${INCLUDE_DIRECTORIES} ${source_dir})
 
 #relevant link: https://stackoverflow.com/questions/38006584/how-to-clone-and-integrate-external-from-git-cmake-project-into-local-one

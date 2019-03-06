@@ -1,7 +1,7 @@
 #include "path_planner.h"
 #include "../../logging.h"
 #include "spdlog/fmt/ostr.h"
-
+#include "../../general.h"
 
 Vars vars;
 Params params;
@@ -21,7 +21,6 @@ All used frames stand still with respect to the earth.
 
 
 namespace {
-    double timeInterval = 10;
     int n = 40;      // let n be the number as defined in CVXGEN.
 
     double d_before = -.5;
@@ -82,7 +81,7 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
 
         double t_max = 30;
         double t_min = 0;
-        double epsilon = 0.1;
+        double epsilon = 0.01;
         for(double t = (t_max + t_min)/2; t_max - t_min >= epsilon; t = (t_max + t_min)/2){
             if(getPathSegment(t, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
                 t_max = t;
@@ -336,7 +335,7 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
     torques(n,2) = qdot*Iy + (Ix - Iz)*p*r;
     torques(n,3) = rdot*Iz + (Iy - Ix)*p*q;
 
-    return validTorques(torques);
+    return true; //validTorques(torques);
 
 }
 
@@ -356,21 +355,6 @@ bool path_planner::validTorques(MatrixXd& torques){
     return true;
 }
 
-Vector4d path_planner::torquesToThrusts(Vector4d torques){
-    // solving torques = M*thrusts
-    double c_q = 2.42e-7;
-    double c_t = 8.048e-6;
-    double d = 0.12;
-    double b = c_q/c_t;
-    Matrix4d diag;
-    diag << 1,0,0,0, 0,d,0,0, 0,0,d,0, 0,0,0,b;
-    Matrix4d signs;
-    signs << 1,1,1,1, 1,1,-1,-1, 1,-1,-1,1, -1,1,-1,1;
-
-    Matrix4d M = diag*signs;
-    Vector4d thrusts = M.colPivHouseholderQr().solve(torques);
-    return thrusts;
-}
 
 
 void path_planner::load_data(double time, Vector3d beginState, Vector3d endState) {
@@ -404,14 +388,14 @@ void path_planner::load_data(double time, Vector3d beginState, Vector3d endState
     params.B[2] = dt;
 
 
-    //params.select_acc[0] = 0.;
-    //params.select_acc[1] = 0.;
-    //params.select_acc[2] = 1.;
+    params.select_acc[0] = 0.;
+    params.select_acc[1] = 0.;
+    params.select_acc[2] = 1.;
 
-    //params.min_acc[0] = -1.;
-    //params.acc_dif[0] = 2.;
-    //params.min_jerk[0] = -1.;
-    //params.jerk_dif[0] = 2.;
+    params.min_acc[0] = -4.;
+    params.acc_dif[0] = 8.;
+    params.min_jerk[0] = -1.;
+    params.jerk_dif[0] = 2.;
 
     params.initial[0] = beginState[0];
     params.initial[1] = beginState[1];

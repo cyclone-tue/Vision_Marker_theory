@@ -7,9 +7,9 @@
 
 namespace {
     double g = 9.81;
-    double Ix = 1;
-    double Iy = 1;
-    double Iz = 1;
+    double Ix = .2;
+    double Iy = .4;
+    double Iz = .5;
 
     double m = 2;
 }

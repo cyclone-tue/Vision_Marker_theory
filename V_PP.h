@@ -1,9 +1,11 @@
 #ifndef MARKER_VISION_V_PP_H
 #define MARKER_VISION_V_PP_H
 
+#define _USE_MATH_DEFINES
 
 #include "Vision/vision.h"
 #include "Path_Planning/path_planner.h"
+#include "general.h"
 
 #include <iostream>
 #include <cmath>
@@ -44,7 +46,7 @@ extern "C" {
 // in logging.c :
 
 void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
-
+void showPathInteractive(MatrixXd& path, VectorXd& timeDiffs, Vector3d hoopTransVec, Matrix3d hoopRotMat);
 
 
 #endif //MARKER_VISION_V_PP_H

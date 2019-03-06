@@ -43,5 +43,54 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 }
 
 
+void showPathInteractive(MatrixXd& path, VectorXd& timeDiffs, Vector3d hoopTransVec, Matrix3d hoopRotMat){
+
+    double maxTime = 0;
+    for(int i = 0; i < path.rows(); i++) {
+        maxTime += timeDiffs(i);
+    }
+
+    double time = 0;
+    std::vector<boost::tuple<double, double, double>> traj;
+    std::vector<boost::tuple<double, double, double>> dots;
+    for(int i = 0; i < path.rows(); i++) {
+        double x = path(i, 0);
+        double y = path(i, 1);
+        double z = path(i, 2);
+        traj.push_back(boost::make_tuple(x, y, z));
+
+        time += timeDiffs(i);
+        if(time >= 0){
+            time -= maxTime/20;
+            dots.push_back(boost::make_tuple(x, y, z));
+        }
+    }
+
+    double radius = 0.5;
+    std::vector<boost::tuple<double, double, double>> hoop;
+    for(double theta = 0; theta <= 2*M_PI; theta += 2*M_PI/20){
+        // hoop frame
+        Vector3d hoopPoint;
+        hoopPoint << 0, cos(theta), sin(theta);
+
+        // world frame
+        Vector3d hoopPoint_w = hoopRotMat*hoopPoint + hoopTransVec;
+        hoop.push_back(boost::make_tuple(hoopPoint_w(0), hoopPoint_w(1), hoopPoint_w(2)));
+    }
+
+    gp << "set xlabel 'x'\n";
+    gp << "set ylabel 'y'\n";
+    gp << "set zlabel 'z'\n";
+    gp << "set view equal xyz\n";
+    gp << "splot '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 pt 7 ps 1\n";
+    gp.send1d(traj);
+    gp.send1d(hoop);
+    gp.send1d(dots);
+
+    getchar();    // wait for user input (to keep pipe open)
+    return;
+}
+
+
 
 

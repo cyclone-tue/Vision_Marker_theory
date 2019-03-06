@@ -13,11 +13,16 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake.modules/")
 
 ## libraries
 
-# gnuplot
 
 # spdlog
 include(cmake.modules/AddSPDlog.txt)
 #include_directories(~/spdlog/include)       # v1.3.1
+
+# gnuplot
+find_package(Boost REQUIRED COMPONENTS system iostreams)  # Boost::system is needed for gnuplot-iostream.h
+include_directories(${Boost_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS})
+include(cmake.modules/AddGNUplot.txt)
 
 # eigen
 find_package(Eigen3 REQUIRED)   # is found because Eigen3_DIR is set. 1: When was it set? 2: How did the configuration files end up at Eigen3_DIR? Type "$ cmake -LAH" in folder of CMakeLists.txt.
@@ -58,7 +63,7 @@ set(POLYNOMIAL Path_Planning/Polynomial/gettingPosDers.cpp Path_Planning/Polynom
 
 set(VISION Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)
 
-add_executable(V_PP  ${VISION} ${MUELLER}  V_PP.cpp logging.cpp)
+add_executable(V_PP  ${VISION} ${MUELLER}  V_PP.cpp logging.cpp general.cpp)
 
 
 ## build libraries
@@ -76,8 +81,10 @@ add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp logging.cpp)
 target_link_libraries(CycloneVision ${OpenCV_LIBS})
 target_link_libraries(V_PP ${OpenCV_LIBS})
 #target_link_libraries(WebcamTest ${OpenCV_LIBS})
+target_link_libraries(V_PP ${Boost_LIBRARIES})
 
 
 # something else
 add_dependencies(CycloneVision opencv)
 add_dependencies(V_PP spdlog)
+add_dependencies(V_PP gnuplot)
