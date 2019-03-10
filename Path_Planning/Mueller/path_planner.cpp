@@ -27,6 +27,9 @@ namespace {
     double v_before = .5;
     double d_after = 1;
     double v_after = .5;
+
+    double f_min = 0.1*g;
+    double f_max = 2*g;
 }
 
 
@@ -34,6 +37,12 @@ namespace {
 
 
 void path_planner::init(){
+
+    pp_logger->info("Distance, velocity before and after the hoop are given by [{};{}] and [{};{}], respectively", d_before, v_before, d_after, v_after);
+    pp_logger->info("Parameters f_min and f_max are given by {} and {}", f_min, f_max);
+    pp_logger->info("Acceleration in x,y,z direction is limited by [{};{}], [{};{}] and [{};{}], respectively", getAccLimit('y')(0), getAccLimit('y')(1), getAccLimit('y')(0), getAccLimit('y')(1), getAccLimit('z')(0), getAccLimit('z')(1));
+    pp_logger->debug("The upper limit of the acceleration squared is {}", pow(getAccLimit('x')(1), 2) + pow(getAccLimit('y')(1), 2) + pow(getAccLimit('z')(0) - g, 2));
+    pp_logger->debug("f_max squared is {}", pow(f_max, 2));
     return;
 }
 
@@ -79,7 +88,19 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
 
         constraintsPart = allConstraints.block<6,3>(0, i*3);
 
-        double t_max = 30;
+        double t_max = 1;
+        while(t_max <= 2000){
+            if(getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
+                break;
+            }
+            t_max *= 2;
+        }
+        success &= getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
+        if(not success){
+            pp_logger->error("No valid path was found for time < 2000");
+            break;
+        }
+
         double t_min = 0;
         double epsilon = 0.01;
         for(double t = (t_max + t_min)/2; t_max - t_min >= epsilon; t = (t_max + t_min)/2){
@@ -92,6 +113,11 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
         }
         success &= getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
         pp_logger->debug("getPathSegment() returns {} with time {}", success, t_max);
+
+        if(not success){
+            pp_logger->error("getPathSegment(t_max) returns {}", success);
+            break;
+        }
 
         // set up beginState for next iteration
         beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);   // never calculated correctly due to incomplete jerkToPath().
@@ -147,25 +173,21 @@ bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd&
     VectorXd jerkCol(n+1);
     bool success = true;
 
-    success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol);  // includes end point (should have n+2 elements)
+    success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol, 'x');  // includes end point (should have n+2 elements)
     pos.col(0) = posCol;
     vel.col(0) = velCol;
     acc.col(0) = accCol;
     jerk.col(0) = jerkCol;
-    success &= getSegment1D(time, beginY, endY, posCol, velCol, accCol, jerkCol);
+    success &= getSegment1D(time, beginY, endY, posCol, velCol, accCol, jerkCol, 'y');
     pos.col(1) = posCol;
     vel.col(1) = velCol;
     acc.col(1) = accCol;
     jerk.col(1) = jerkCol;
-    success &= getSegment1D(time, beginZ, endZ, posCol, velCol, accCol, jerkCol);
+    success &= getSegment1D(time, beginZ, endZ, posCol, velCol, accCol, jerkCol, 'z');
     pos.col(2) = posCol;
     vel.col(2) = velCol;
     acc.col(2) = accCol;
     jerk.col(2) = jerkCol;
-
-    if(not success){
-        pp_logger->error("getSegment1D() returns {}", success);
-    }
 
     success &= jerkToPath(time, currentState, pos, vel, acc, jerk, path, timeDiffs, torques);  // excludes end point
 
@@ -173,8 +195,8 @@ bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd&
 }
 
 
-bool path_planner::getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk){
-    load_data(time, begin, end);
+bool path_planner::getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk, char dim){
+    load_data(time, begin, end, dim);
     long num_iters = solve();   // in solver.c
     for(int i = 0; i <= n+1; i++) pos(i, 0) = vars.x[i][0];
     for(int i = 0; i <= n; i++) jerk(i, 0) = vars.jerk[i][0];
@@ -187,6 +209,30 @@ bool path_planner::getSegment1D(double time, Vector3d& begin, Vector3d& end, Vec
 MatrixXd path_planner::getConstraints(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat){
     // ders = [[x, xd, xdd]; [y, yd, ydd]; [z, zd, zdd]]
     Matrix3d currentDers = stateToPosDers(currentState, currentTorque);
+    if(currentDers(0, 2) < getAccLimit('x')(0)){
+        pp_logger->error("Current accelleration in x direction is {} < {}", currentDers(0, 2), getAccLimit('x')(0));
+        currentDers(0, 2) = getAccLimit('x')(0);                                                // not very efficient of course.
+    }
+    if(currentDers(0, 2) > getAccLimit('x')(1)){
+        pp_logger->error("Current accelleration in x direction is {} > {}", currentDers(0, 2), getAccLimit('x')(1));
+        currentDers(0, 2) = getAccLimit('x')(1);
+    }
+    if(currentDers(1, 2) < getAccLimit('y')(0)){
+        pp_logger->error("Current accelleration in y direction is {} < {}", currentDers(1, 2), getAccLimit('y')(0));
+        currentDers(1, 2) = getAccLimit('y')(0);
+    }
+    if(currentDers(1, 2) > getAccLimit('y')(1)){
+        pp_logger->error("Current accelleration in y direction is {} > {}", currentDers(1, 2), getAccLimit('y')(1));
+        currentDers(1, 2) = getAccLimit('y')(1);
+    }
+    if(currentDers(2, 2) < getAccLimit('z')(0)){
+        pp_logger->error("Current accelleration in z direction is {} < {}", currentDers(2, 2), getAccLimit('z')(0));
+        currentDers(2, 2) = getAccLimit('z')(0);
+    }
+    if(currentDers(2, 2) > getAccLimit('z')(1)){
+        pp_logger->error("Current accelleration in z direction is {} > {}", currentDers(2, 2), getAccLimit('z')(1));
+        currentDers(2, 2) = getAccLimit('z')(1);
+    }
     Matrix3d before_ders = get_ders_hoop_to_world(d_before, v_before, hoopTransVec, hoopRotMat);
     Matrix3d after_ders = get_ders_hoop_to_world(d_after, v_after, hoopTransVec, hoopRotMat);
 
@@ -284,7 +330,7 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
         path(i,8) = psi;
         path(i,7) = atan(1/(g-acc(i,2)) * (acc(i,1)*sin(psi) - acc(i,0))/(1-2*pow(sin(psi),2)));
         double theta = path(i,7);
-        path(i,6) = atan(-acc(i,1)/(g-acc(i,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
+        path(i,6) = -atan(-acc(i,1)/(g-acc(i,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
         double phi = path(i,6);
 
         double phidot = (path(i,6) - path(i-1,6))/dt;       // this can be done better...
@@ -356,23 +402,35 @@ bool path_planner::validTorques(MatrixXd& torques){
 }
 
 
+Vector2d path_planner::getAccLimit(char dim){
+    //2*x^2 + (c*x + g)^2 = f^2;
+    //2*x^2 + c^2*x^2 + 2*cxg + g^2 = f^2;
+    //(x + cg/(2+c^2))^2 = c^2g^2/(2 + c^2)^2 + f^2 - g^2;
+    double c = 1;
+    double xddot_min = (c*g - sqrt( (2 + pow(c,2))*pow(f_max,2) - 2*pow(g,2) ))/(2+pow(c,2));
+    double xddot_max = -1*xddot_min;
+    double yddot_min = xddot_min;
+    double yddot_max = xddot_max;
 
-void path_planner::load_data(double time, Vector3d beginState, Vector3d endState) {
+    double zddot_max = g-f_min;
+    double zddot_min = c*xddot_min;
+
+    Vector2d acc_limits;
+    if(dim == 'x'){
+        acc_limits << xddot_min, xddot_max;
+    }
+    if(dim == 'y'){
+        acc_limits << yddot_min, yddot_max;
+    }
+    if(dim == 'z'){
+        acc_limits << zddot_min, zddot_max;
+    }
+    return acc_limits;
+}
+
+
+void path_planner::load_data(double time, Vector3d beginState, Vector3d endState, char dim) {
     double dt = time/(n+1);
-    /*
-    params.A[0] = 1.;
-    params.A[1] = dt;
-    params.A[2] = pow(dt,2)/2.;
-    params.A[3] = 0.;
-    params.A[4] = 1.;
-    params.A[5] = dt;
-    params.A[6] = 0.;
-    params.A[7] = 0.;
-    params.A[8] = 1.;
-    params.B[0] = pow(dt,3)/6.;
-    params.B[1] = pow(dt,2)/2.;
-    params.B[2] = dt;
-     */
 
     params.A[0] = 1;
     params.A[1] = 0;
@@ -392,10 +450,17 @@ void path_planner::load_data(double time, Vector3d beginState, Vector3d endState
     params.select_acc[1] = 0.;
     params.select_acc[2] = 1.;
 
-    params.min_acc[0] = -4.;
-    params.acc_dif[0] = 8.;
-    params.min_jerk[0] = -1.;
-    params.jerk_dif[0] = 2.;
+
+    double omega_max = 3;
+
+    Vector2d acc_limits = getAccLimit(dim);
+    params.min_acc[0] = acc_limits(0);
+    params.acc_dif[0] = acc_limits(1) - acc_limits(0);
+
+
+    double j_max = f_min*omega_max/sqrt(3);
+    params.min_jerk[0] = -1*j_max;
+    params.jerk_dif[0] = 2*j_max;
 
     params.initial[0] = beginState[0];
     params.initial[1] = beginState[1];

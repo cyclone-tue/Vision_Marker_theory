@@ -36,7 +36,6 @@ public:
     static Mat debugFrame;  // for visualization.
 private:
     static bool readCameraParameters(String filename, OutputArray cameraMatrix, OutputArray distCoefficients);
-    static Matrix3d anglesToRotMatXYZ(double roll, double pitch, double yaw);
     static Matrix3d anglesToRotMatZYX(double roll, double pitch, double yaw);
 };
 
