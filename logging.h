@@ -26,10 +26,8 @@ extern Gnuplot gp;
 
 
 
-//spdlog::logger combined_logger; // = std::make_shared<spdlog::logger>("V_PP_c", begin(sinks), end(sinks));
-//spdlog::logger vpp_logger; // = std::make_shared<spdlog::logger>("V_PP", vpp_sink);
-
-
+std::vector<std::vector<boost::tuple<double, double, double>>> getDronePoints(Vector3d pos, Vector3d ang);
+std::vector<std::vector<boost::tuple<double, double, double>>> rotateDrone(std::vector<std::vector<boost::tuple<double, double, double>>> dronePoints, Vector3d pos, Vector3d ang);
 
 
 

@@ -63,13 +63,14 @@ class path_planner{
         static MatrixXd concatenate(MatrixXd& one, MatrixXd& two);
         static VectorXd concatenateVec(VectorXd& one, VectorXd& two);
         static bool getPathSegment(double time, VectorXd& currentState, MatrixXd& constraints, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
-        static bool getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk);
+        static bool getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk, char dim);
         static MatrixXd getConstraints(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
         static Matrix3d get_ders_hoop_to_world(double dist, double vel, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
         static Matrix3d stateToPosDers(VectorXd& currentState, Vector4d& currentTorque);
         static bool jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
         static bool validTorques(MatrixXd& torques);
-        static void load_data(double time, Vector3d beginState, Vector3d endState);
+        static void load_data(double time, Vector3d beginState, Vector3d endState, char dim);
+        static Vector2d getAccLimit(char dim);
 };
 
 /*

@@ -11,7 +11,7 @@
 using namespace Eigen;
 
 Vector4d torquesToThrusts(Vector4d torques);
-
+Matrix3d anglesToRotMatXYZ(double roll, double pitch, double yaw);
 
 
 
