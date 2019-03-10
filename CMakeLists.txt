@@ -26,12 +26,15 @@ include(cmake.modules/AddGNUplot.txt)
 
 # eigen
 find_package(Eigen3 REQUIRED)   # is found because Eigen3_DIR is set. 1: When was it set? 2: How did the configuration files end up at Eigen3_DIR? Type "$ cmake -LAH" in folder of CMakeLists.txt.
+#find_package(spdlog REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 # opencv
 find_package(OpenCV REQUIRED)
 list(APPEND OpenCV_LIBS opencv_aruco)
 include_directories(${OPENCV_INCLUDE_DIRS})
+include_directories("/usr/include/spdlog")
+#include_directories(~/spdlog/include)       # v1.3.1
 add_library(opencv INTERFACE IMPORTED)
 set_property(TARGET opencv PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENCV_INCLUDE_DIR})
 
