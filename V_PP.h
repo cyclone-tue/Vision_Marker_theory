@@ -33,7 +33,7 @@ using namespace std;
 using namespace Eigen;
 
 
-bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques, bool visualize);
 VectorXd arrayToEigen(double* array, int length);
 int main();
 
@@ -45,7 +45,7 @@ extern "C" {
 
 // in logging.c :
 
-void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath);
+void runVisualize(VectorXd& currentState, MatrixXd& path, VectorXd& timeDiffs, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath);
 void showPathInteractive(MatrixXd& path, VectorXd& timeDiffs, Vector3d hoopTransVec, Matrix3d hoopRotMat);
 
 

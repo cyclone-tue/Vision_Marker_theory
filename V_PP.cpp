@@ -85,10 +85,8 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     currentState = arrayToEigen(currentStateArray, 12);
     currentTorque = arrayToEigen(currentTorqueArray, 4);
 
-    bool success = runFrame(currentState, currentTorque, path, timeDiffs, torques);
-    if(visualize){
-        runVisualize(currentState, path, success);
-    }
+    bool success = runFrame(currentState, currentTorque, path, timeDiffs, torques, visualize);
+
     if(success) {
         *pathLength = path.rows();
         MatrixXd outputInfo(*pathLength, 3);
@@ -108,7 +106,7 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
 }
 
 
-bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques){
+bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques, bool visualize){
 
     bool success = false;
     Vector3d hoopTransVec;
@@ -121,6 +119,11 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
             vpp_logger->error("Path planning was unsuccessful...");
         }
     }
+
+    if(visualize){
+        runVisualize(currentState, path, timeDiffs, hoopTransVec, hoopRotMat, success);
+    }
+
     return success;
 }
 
@@ -147,7 +150,7 @@ void test_PP(){
     VectorXd timeDiffs(0);
     MatrixXd torques(0,4);
 
-    currentState << 5,4,1, 0,0,0, 0,0,0, 0,0,0;         // input to the path planner
+    currentState << 5,4,1, 3,5,2, .6,0,0, 0,0,0;         // input to the path planner
     currentTorque << 20,0,0,0;
     hoopTransVec << 10, -3, 2;
     hoopRotMat << 1,0,0, 0,1,0, 0,0,1;

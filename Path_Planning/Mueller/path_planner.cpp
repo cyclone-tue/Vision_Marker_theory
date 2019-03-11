@@ -62,73 +62,97 @@ bool path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Vector3d
     pp_logger->debug("hoopTransVec : \n{}", hoopTransVec);
     pp_logger->debug("hoopRotMat : \n{}", hoopRotMat);
 
-
-    MatrixXd pathPart(n + 1, 12);       // including begin and excluding end point.
-    VectorXd timeDiffsPart(n + 1);
-    MatrixXd torquesPart(n + 1, 4);
-    MatrixXd constraintsPart(6, 3);     // constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
-    VectorXd beginState(12);
-    VectorXd beginState_temp(12);
-    bool success = true;
-
     set_defaults();                 // in solver.c
     setup_indexing();               // in solver.c
 
-    // set up the constraints
-    MatrixXd allConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat);
+    std::vector<MatrixXd> subConstraints = getConstraints(currentState, currentTorque, hoopTransVec, hoopRotMat); // constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ... ]; [z1, ... ]]
+    std::vector<MatrixXd> subPaths;
+    std::vector<VectorXd> subTimeDiffs;
+    std::vector<MatrixXd> subTorques;
+    int numOfSubSegments = 0;
+
+    MatrixXd testPath(n + 1, 12);       // including begin and excluding end point.
+    VectorXd testTimeDiffs(n + 1);
+    MatrixXd testTorques(n + 1, 4);
+
+    VectorXd beginState = currentState;
 
     pp_logger->debug("constraints :\n {}", allConstraints);
 
-    int waypoints = (int) allConstraints.cols() / 3 - 1;
+    int waypoints = subConstraints.len() - 1;
+    bool success = true;
 
-    beginState = currentState;
     for (int i = 0; i <= waypoints; i++) {							// iterate over path intervals.
-
         pp_logger->debug("Starting path segment {}", i+1);
 
-        constraintsPart = allConstraints.block<6,3>(0, i*3);
-
+        // find a suitable upper time limit to start with.
         double t_max = 1;
-        while(t_max <= 2000){
-            if(getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
-                break;
-            }
-            t_max *= 2;
-        }
-        success &= getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
+        for(t_max = 1; (not getPathSegment(t_max, beginState, subConstraints.at(i), subConstraints.at(i+1), testPath, testTimeDiffs, testTorques)) and t_max <= 2000; t_max *= 2){}
+        success &= getPathSegment(t_max, beginState, subConstraints.at(i), subConstraints.at(i+1), testPath, testTimeDiffs, testTorques);
         if(not success){
             pp_logger->error("No valid path was found for time < 2000");
             break;
         }
 
+        // optimize the time
         double t_min = 0;
         double epsilon = 0.01;
         for(double t = (t_max + t_min)/2; t_max - t_min >= epsilon; t = (t_max + t_min)/2){
-            if(getPathSegment(t, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart)){
+            if(getPathSegment(t, beginState, subConstraints.at(i), subConstraints.at(i+1), testPath, testTimeDiffs, testTorques)){
                 t_max = t;
             } else{
                 t_min = t;
             }
-
         }
-        success &= getPathSegment(t_max, beginState, constraintsPart, pathPart, timeDiffsPart, torquesPart);
+        subPaths.push_back(MatrixXd(n+1, 12));
+        subTimeDiffs.push_back(VectorXd(n+1));
+        subTorques.push_back(MatrixXd(n+1, 4));
+        success &= getPathSegment(t_max, beginState, subConstraints.at(i), subConstraints.at(i+1), subPaths.at(i), subTimeDiffs.at(i), subTorques.at(i));
         pp_logger->debug("getPathSegment() returns {} with time {}", success, t_max);
-
         if(not success){
             pp_logger->error("getPathSegment(t_max) returns {}", success);
             break;
         }
 
-        // set up beginState for next iteration
-        beginState_temp = pathPart.block<1,12>(pathPart.rows()-1, 0);   // never calculated correctly due to incomplete jerkToPath().
-        beginState = beginState_temp.replicate(1,12);
-        beginState.block<3,1>(0,0) = constraintsPart.block<3,1>(3,0);
-        beginState.block<3,1>(0,3) = constraintsPart.block<3,1>(3,1);
 
-        path = concatenate(path, pathPart);
-        timeDiffs = concatenateVec(timeDiffs, timeDiffsPart);
-        torques = concatenate(torques, torquesPart);
+        while(subTimeDiffs.at(i)(1) > 0.01){
+            for(int subSegment = i; subSegment < subPaths.len(); subSegment+=1){
+                beginState = subPaths.at(subSegment).row(0);
+
+                int center = n/2;
+                VectorXd centerState = subPaths.at(subSegment).row(center);
+                Vector4d centerTorque = subTorques.at(subSegment).row(center);
+                subConstraints.push(subSegment+1,stateToPosDers(centerState, centerTorque));
+
+                subPaths.push_back(MatrixXd(n+1, 12));
+                subTimeDiffs.push_back(VectorXd(n+1));
+                subTorques.push_back(MatrixXd(n+1, 4));
+                getPathSegment(t_max/(numOfSubSegments*2), beginState, subConstraints.at(subSegment), subConstraints.at(subSegment+1), subPaths.at(subSegment), subTimeDiffs.at(subSegment), subTorques.at(subSegment));
+
+                subSegment += 1;
+
+                subPaths.push_back(MatrixXd(n+1, 12));
+                subTimeDiffs.push_back(VectorXd(n+1));
+                subTorques.push_back(MatrixXd(n+1, 4));
+                getPathSegment(t_max/(numOfSubSegments*2), centerState, subConstraints.at(subSegment), subConstraints.at(subSegment+1), subPaths.at(subSegment), subTimeDiffs.at(subSegment), subTorques.at(subSegment));
+            }
+        }
+        for(int i = 1; i < subPaths.len(); i++){
+            subPaths.at(0) = concatenate(subPaths.at(0), subPaths.at(i));
+        }
+
+        // set up beginState for next iteration
+        beginState = subPaths.at(-1).row(-1);
+
+        std::vector<MatrixXd> subPaths = {concatenate(subPaths)};
+        std::vector<VectorXd> subTimeDiffs = {concatenateVec(subTimeDiffs)};
+        std::vector<MatrixXd> subTorques = {concatenate(subTorques)};
     }
+
+    path = subPaths;
+    timeDiffs = subTimeDiffs;
+    torques = subTorques;
+
     return success;
 }
 
@@ -188,6 +212,8 @@ bool path_planner::getPathSegment(double time, VectorXd& currentState, MatrixXd&
     vel.col(2) = velCol;
     acc.col(2) = accCol;
     jerk.col(2) = jerkCol;
+
+    if(not success) return success;
 
     success &= jerkToPath(time, currentState, pos, vel, acc, jerk, path, timeDiffs, torques);  // excludes end point
 

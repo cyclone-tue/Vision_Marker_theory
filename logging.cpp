@@ -8,13 +8,13 @@
 /*
 path contains x times 12 elements.
  */
-void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
+void runVisualize(VectorXd& currentState, MatrixXd& path, VectorXd& timeDiffs, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath){
 
     Mat frame;
     vision::debugFrame.copyTo(frame);
 
     if(displayPath) {
-        MatrixXd points(path.rows(), path.cols());
+        MatrixXd points(path.rows(), 3);
 
         vector<Point3d> cvPoints;
         for (int row = 0; row < points.rows(); row++) {
@@ -41,6 +41,9 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, bool displayPath){
 
     imshow("out", frame);
     waitKey(1);
+
+    showPathInteractive(path, timeDiffs, hoopTransVec, hoopRotMat);
+
     return;
 }
 
@@ -132,9 +135,10 @@ void showPathInteractive(MatrixXd& path, VectorXd& timeDiffs, Vector3d hoopTrans
             std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt*1000)));
 
         }
+        break;
     }
 
-    getchar();    // wait for user input (to keep pipe open)
+    //getchar();    // wait for user input (to keep pipe open)
     return;
 }
 
