@@ -150,7 +150,7 @@ void test_PP(){
     VectorXd timeDiffs(0);
     MatrixXd torques(0,4);
 
-    currentState << 5,4,1, 3,5,2, .6,0,0, 0,0,0;         // input to the path planner
+    currentState << 1,2,1, 0,0,0, 0,0,0, 0,0,0;         // input to the path planner
     currentTorque << 20,0,0,0;
     hoopTransVec << 10, -3, 2;
     hoopRotMat << 1,0,0, 0,1,0, 0,0,1;
