@@ -85,9 +85,9 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     currentState = arrayToEigen(currentStateArray, 12);
     currentTorque = arrayToEigen(currentTorqueArray, 4);
 
-    bool success = runFrame(currentState, currentTorque, path, timeDiffs, torques, visualize);
+    Trajectory traj = runFrame(currentState, currentTorque, visualize);
 
-    if(success) {
+    if(traj.valid) {
         *pathLength = path.rows();
         MatrixXd outputInfo(*pathLength, 3);
         outputInfo = path.block(0,0, path.rows(),3);
@@ -106,25 +106,26 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
 }
 
 
-bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques, bool visualize){
+Trajectory runFrame(VectorXd& currentState, Vector4d& currentTorque, bool visualize){
 
     bool success = false;
     Vector3d hoopTransVec;
     Matrix3d hoopRotMat;
+    Trajectory traj;
 
     bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);       // should be returned in world frame, instead of body frame.
     if(foundHoop){
-        success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
-        if(not success){
+        traj = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat);
+        if(not traj.valid){
             vpp_logger->error("Path planning was unsuccessful...");
         }
     }
 
     if(visualize){
-        runVisualize(currentState, path, timeDiffs, hoopTransVec, hoopRotMat, success);
+        runVisualize(currentState, traj, hoopTransVec, hoopRotMat, traj.valid);
     }
 
-    return success;
+    return traj;
 }
 
 VectorXd arrayToEigen(double* array, int length){
@@ -155,7 +156,7 @@ void test_PP(){
     hoopTransVec << 10, -3, 2;
     hoopRotMat << 1,0,0, 0,1,0, 0,0,1;
 
-    bool success = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat, path, timeDiffs, torques);
+    Trajectory traj = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat);
 
     MatrixXd thrusts(torques.rows(), 4);
     for(int i = 0; i < torques.rows(); i++){
@@ -169,10 +170,10 @@ void test_PP(){
     vpp_logger->debug("path, timeDiffs, torques: \n{}", outputInfo);
 
 
-    showPathInteractive(path, timeDiffs, hoopTransVec, hoopRotMat);
+    showPathInteractive(traj, hoopTransVec, hoopRotMat);
 
 
-    if(not success){
+    if(not traj.valid){
         vpp_logger->error("Test was unsuccessful...");
     }
     vpp_logger->info("End of test.");

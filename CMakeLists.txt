@@ -61,7 +61,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})    # I dont think this is n
 # Building the main executable
 set(CVXGEN_PATH Path_Planning/Mueller/cvxgen)
 set(CVXGEN ${CVXGEN_PATH}/solver.c ${CVXGEN_PATH}/ldl.c ${CVXGEN_PATH}/matrix_support.c ${CVXGEN_PATH}/util.c)
-set(MUELLER Path_Planning/Mueller/path_planner.cpp ${CVXGEN})
+set(MUELLER Path_Planning/Mueller/path_planner.cpp Path_Planning/trajectory.cpp ${CVXGEN})
 set(POLYNOMIAL Path_Planning/Polynomial/gettingPosDers.cpp Path_Planning/Polynomial/math_tools.cpp Path_Planning/Polynomial/posToStatePath.cpp Path_Planning/Polynomial/path_planner.cpp)
 
 set(VISION Vision/Detect_Markers.cpp Vision/CircleBoard.cpp)

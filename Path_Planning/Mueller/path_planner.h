@@ -5,6 +5,7 @@
 #include <iostream>
 #include "../../constants.h"
 #include <vector>
+#include "../trajectory.h"
 
 
 //#include "../../V_PP.h"
@@ -59,20 +60,20 @@ class path_planner{
 
         return value    : number of states in &path.
         */
-        static bool run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static Trajectory run(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
     private:
         static MatrixXd concatenate(std::vector<MatrixXd> parts);
         static VectorXd concatenateVec(std::vector<VectorXd> parts);
-        static bool getPathSegment(double time, VectorXd& currentState, Matrix3d& beginConstraint, Matrix3d& endConstraint, Vector3d pos_to_look_at, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static Trajectory getPathSegment(double time, const VectorXd& currentState, const Matrix3d& beginConstraint, const Matrix3d& endConstraint, Vector3d pos_to_look_at, bool look_at_pos);
         static bool getSegment1D(double time, Vector3d& begin, Vector3d& end, VectorXd& pos, VectorXd& vel, VectorXd& acc, VectorXd& jerk, char dim);
         static std::vector<Matrix3d> getConstraints(VectorXd& currentState, Vector4d& currentTorque, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
         static Matrix3d get_ders_hoop_to_world(double dist, double vel, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
-        static Matrix3d stateToPosDers(VectorXd& currentState, Vector4d& currentTorque);
-        static bool jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, Vector3d pos_to_look_at, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static Matrix3d stateToPosDers(const VectorXd& currentState, const Vector4d& currentTorque);
+        static Trajectory jerkToPath(double time, const VectorXd& beginState, MatrixXd& pos, MatrixXd& vel, MatrixXd& acc, MatrixXd& jerk, Vector3d pos_to_look_at, bool look_at_pos);
         static bool validTorques(MatrixXd& torques);
         static void load_data(double time, Vector3d beginState, Vector3d endState, char dim);
         static Vector2d getAccLimit(char dim);
-        static bool gotoWaypoint(VectorXd beginState, std::vector<Matrix3d> constraints, Vector3d pos_to_look_at, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
+        static Trajectory gotoWaypoint(VectorXd beginState, std::vector<Matrix3d> constraints, Vector3d pos_to_look_at, bool look_at_pos);
         static double getYawToHoop(Vector3d pos, Vector3d pos_to_look_at);
         static void sewTogetherPath(std::vector<MatrixXd> subPaths, std::vector<VectorXd> subTimeDiffs, std::vector<MatrixXd> subTorques, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
         static void removeRow(MatrixXd& matrix, int rowToRemove);

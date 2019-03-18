@@ -1,6 +1,7 @@
 // this file contains functions for logging and visualization.
 
-#include "V_PP.h"
+//#include "V_PP.h"
+#include "logging.h"
 #include "general.h"
 #include <chrono>
 #include <thread>
@@ -8,17 +9,18 @@
 /*
 path contains x times 12 elements.
  */
-void runVisualize(VectorXd& currentState, MatrixXd& path, VectorXd& timeDiffs, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath){
+void runVisualize(VectorXd& currentState, Trajectory traj, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath){
 
     Mat frame;
     vision::debugFrame.copyTo(frame);
 
     if(displayPath) {
-        MatrixXd points(path.rows(), 3);
+
 
         vector<Point3d> cvPoints;
-        for (int row = 0; row < points.rows(); row++) {
-            cvPoints.push_back(Point3d(path(row, 0), path(row, 1), path(row, 2)));
+        for (int mark = traj.mark(traj.time(-1)); traj.time(mark) <= traj.time(-1); traj.increment_mark(mark)) {
+            VectorXd state = traj.state(mark);
+            cvPoints.push_back(Point3d(state(0), state(1), state(2)));
         }
 
         vector<Point2d> imagePoints;
@@ -42,40 +44,34 @@ void runVisualize(VectorXd& currentState, MatrixXd& path, VectorXd& timeDiffs, V
     imshow("out", frame);
     waitKey(1);
 
-    showPathInteractive(path, timeDiffs, hoopTransVec, hoopRotMat);
+    showPathInteractive(traj, hoopTransVec, hoopRotMat);
 
     return;
 }
 
 
-void showPathInteractive(MatrixXd& path, VectorXd& timeDiffs, Vector3d hoopTransVec, Matrix3d hoopRotMat){
+void showPathInteractive(Trajectory traj, Vector3d hoopTransVec, Matrix3d hoopRotMat){
 
     vpp_logger->flush();
     pp_logger->flush();
     v_logger->flush();
 
-    double min_x = path.col(0).minCoeff();
-    double max_x = path.col(0).maxCoeff();
-    double min_y = path.col(1).minCoeff();
-    double max_y = path.col(1).maxCoeff();
-    double min_z = path.col(2).minCoeff();
-    double max_z = path.col(2).maxCoeff();
-    double maxTime = timeDiffs.sum();
+    double min_x = traj.min('x');
+    double max_x = traj.max('x');
+    double min_y = traj.min('y');//path.col(1).minCoeff();
+    double max_y = traj.max('y');//path.col(1).maxCoeff();
+    double min_z = traj.min('z');
+    double max_z = traj.max('z');
+    double maxTime = traj.time(-1);
 
     double time = 0;            // generate trajectory
-    std::vector<boost::tuple<double, double, double>> traj;
+    std::vector<boost::tuple<double, double, double>> positions;
     std::vector<boost::tuple<double, double, double>> dots;
-    for(int i = 0; i < path.rows(); i++) {
-        double x = path(i, 0);
-        double y = path(i, 1);
-        double z = path(i, 2);
-        traj.push_back(boost::make_tuple(x, y, z));
-
-        time += timeDiffs(i);
-        if(time >= 0){
-            time -= maxTime/20;
-            dots.push_back(boost::make_tuple(x, y, z));
-        }
+    for(int mark = traj.mark(traj.time(-1)); traj.time(mark) <= traj.time(-1); traj.increment_mark(mark)) {
+        double x = traj.state(mark)(0);
+        double y = traj.state(mark)(1);
+        double z = traj.state(mark)(2);
+        positions.push_back(boost::make_tuple(x, y, z));
     }
 
     double radius = 0.5;        // generate hoop
@@ -95,7 +91,7 @@ void showPathInteractive(MatrixXd& path, VectorXd& timeDiffs, Vector3d hoopTrans
     gp << "set zlabel 'z'\n";
     gp << "set view equal xyz\n";
     gp << "splot '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 pt 7 ps 1\n";
-    gp.send1d(traj);
+    gp.send1d(positions);
     gp.send1d(hoop);
     gp.send1d(dots);
 
@@ -117,22 +113,22 @@ void showPathInteractive(MatrixXd& path, VectorXd& timeDiffs, Vector3d hoopTrans
     gp << "set view equal xyz\n";
 
     while(true) {
-        for (int i = 0; i < path.rows(); i++) {
-            double dt = timeDiffs(i);
+        // make timer
+        for (int mark = traj.mark(traj.time(-1)); traj.time(mark) <= traj.time(-1); traj.increment_mark(mark)) {
 
             std::vector<std::vector<boost::tuple<double, double, double>>> drone;
-            Vector3d pos = path.block<1, 3>(i, 0);
-            Vector3d ang = path.block<1, 3>(i, 6);
+            Vector3d pos = traj.state(mark).block<1, 3>(0, 0);
+            Vector3d ang = traj.state(mark).block<1, 3>(0, 6);
             drone = getDronePoints(pos, ang);
             gp
                     << "splot '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines \n";
-            gp.send1d(traj);
+            gp.send1d(positions);
             gp.send1d(hoop);
             for (int i = 0; i < static_cast<int>(drone.size()); i++) {
                 gp.send1d(drone.at(i));
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt*1000)));
+            //std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt*1000)));
 
         }
         break;
