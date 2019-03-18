@@ -124,7 +124,7 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
     return success;
 }
 
-double *output_simple_path(double* currentStateArray, int *pathLength) {
+double *output_simple_path(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize) {
     VectorXd currentState(12);
     Vector3d hoopTransVec;
     Matrix3d hoopRotMat;
@@ -215,7 +215,7 @@ void test_V_PP(){
 
     double *output_ptr;   // contains path, timeDiffs, torques
     while(true){
-        output_ptr = output_simple_path(currentState, pathLength);
+        output_ptr = output_simple_path(currentState, currentTorque, pathLength, visualize);
     }
     return;
 }
