@@ -89,8 +89,8 @@ Trajectory path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Ve
 
         std::vector<Matrix3d> segmentConstraints = {constraints.at(i), constraints.at(i+1)};
         pp_logger->debug("Starting path segment {}", i+1);
-        pp_logger->flush();
-        pp_logger->debug("Starting path segment {}", i+1);
+        pp_logger->debug("traj.state(-1) is {}", traj.state(-1));
+        gotoWaypoint(traj.state(-1), segmentConstraints, hoopTransVec, i!=waypoints);
         pp_logger->flush();
         //traj.append(gotoWaypoint(traj.state(-1), segmentConstraints, hoopTransVec, i!=waypoints));
 
@@ -253,6 +253,8 @@ constraints = [[x0, xd0, xdd0]; [y0, ... ]; [z0, ... ]; [x1, xd1, xdd1]; [y1, ..
 Trajectory path_planner::getPathSegment(double time, const VectorXd& currentState, const Matrix3d& beginConstraint, const Matrix3d& endConstraint, Vector3d pos_to_look_at, bool look_at_pos){
 
 
+    bool success = true;
+
     pp_logger->debug("here");
     pp_logger->flush();
 
@@ -280,28 +282,33 @@ Trajectory path_planner::getPathSegment(double time, const VectorXd& currentStat
     pp_logger->debug("here");
     pp_logger->flush();
 
-    traj.valid &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol, 'x');  // includes end point (should have n+2 elements)
+    success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol, 'x');  // includes end point (should have n+2 elements)
     pos.col(0) = posCol;
     vel.col(0) = velCol;
     acc.col(0) = accCol;
     jerk.col(0) = jerkCol;
-    traj.valid &= getSegment1D(time, beginY, endY, posCol, velCol, accCol, jerkCol, 'y');
+    success &= getSegment1D(time, beginY, endY, posCol, velCol, accCol, jerkCol, 'y');
     pos.col(1) = posCol;
     vel.col(1) = velCol;
     acc.col(1) = accCol;
     jerk.col(1) = jerkCol;
-    traj.valid &= getSegment1D(time, beginZ, endZ, posCol, velCol, accCol, jerkCol, 'z');
+    success &= getSegment1D(time, beginZ, endZ, posCol, velCol, accCol, jerkCol, 'z');
     pos.col(2) = posCol;
     vel.col(2) = velCol;
     acc.col(2) = accCol;
     jerk.col(2) = jerkCol;
 
-    pp_logger->debug("here");
+    pp_logger->debug("success is {}", success);
     pp_logger->flush();
 
+    traj.valid = success;
     if(not traj.valid) return traj;
 
+    pp_logger->debug("successful");
+    pp_logger->flush();
+
     traj = jerkToPath(time, currentState, pos, vel, acc, jerk, pos_to_look_at, look_at_pos);  // excludes end point
+    traj.valid = success;
 
     return traj;
 }
@@ -431,6 +438,7 @@ Trajectory path_planner::jerkToPath(double time, const VectorXd& beginState, Mat
 
     Trajectory traj;
     VectorXd state;
+    VectorXd oldState = beginState;
     double timeDiff;
     Vector4d torque;
 
@@ -442,49 +450,60 @@ Trajectory path_planner::jerkToPath(double time, const VectorXd& beginState, Mat
         int j = i-1;
 
         // calculate state at time
-        state.block<1,3>(i,0) = pos.block<1,3>(i,0);
-        state.block<1,3>(i,3) = vel.block<1,3>(i,0);
+        state(0) = pos(i,0);
+        state(1) = pos(i,1);
+        state(2) = pos(i,2);
+        state(3) = vel(i,0);
+        state(4) = vel(i,1);
+        state(5) = vel(i,2);
+        //state.block<3,1>(3,0) << vel.block<1,3>(i,0);
 
-        double psi;
-        if(look_at_pos) psi = getYawToHoop(pos, pos_to_look_at);
-        else psi = beginState(8);
+        //double psi;
+        //if(look_at_pos) psi = getYawToHoop(pos, pos_to_look_at);
+        //else psi = beginState(8);
+        double psi = 0;
 
-        state(i,8) = psi;
-        state(i,7) = atan(1/(g-acc(i,2)) * (acc(i,1)*sin(psi) - acc(i,0))/(1-2*pow(sin(psi),2)));
+        state(8) = psi;
+        state(7) = atan(1/(g-acc(i,2)) * (acc(i,1)*sin(psi) - acc(i,0))/(1-2*pow(sin(psi),2)));
         double theta = state(i,7);
-        state(i,6) = -atan(-acc(i,1)/(g-acc(i,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
-        double phi = state(i,6);
+        state(6) = -atan(-acc(i,1)/(g-acc(i,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
+        double phi = state(6);
 
-        double phidot = (state(i,6) - state(i-1,6))/dt;       // this can be done better...
-        double thetadot = (state(i,7) - state(i-1,7))/dt;
-        double psidot = (state(i,8) - state(i-1,8))/dt;
+        double phidot = (state(6) - oldState(6))/dt;       // this can be done better...
+        double thetadot = (state(7) - oldState(7))/dt;
+        double psidot = (state(8) - oldState(8))/dt;
 
-        state(i,9) = phidot + (2*pow(sin(phi),2) - sin(theta))*psidot;
-        state(i,10) = cos(psi)*thetadot + sin(phi)*cos(theta)*psidot;
-        state(i,11) = cos(phi)*cos(theta)*psidot - sin(phi)*thetadot;
-        double p = state(i,9);
-        double q = state(i,10);
-        double r = state(i,11);
+        state(9) = phidot + (2*pow(sin(phi),2) - sin(theta))*psidot;
+        state(10) = cos(psi)*thetadot + sin(phi)*cos(theta)*psidot;
+        state(11) = cos(phi)*cos(theta)*psidot - sin(phi)*thetadot;
+        double p = state(9);
+        double q = state(10);
+        double r = state(11);
 
-        traj.appendState(state);
+        //traj.appendState(state);
 
-        double pdot = (state(i,9) - state(i-1,9))/dt;
-        double qdot = (state(i,10) - state(i-1,10))/dt;
-        double rdot = (state(i,11) - state(i-1,11))/dt;
+        //double pdot = (state(i,9) - state(i-1,9))/dt;
+        //double qdot = (state(i,10) - state(i-1,10))/dt;
+        //double rdot = (state(i,11) - state(i-1,11))/dt;
 
         // time interval
-        traj.appendTime(dt);
+        //traj.appendTime(dt);
 
         // calculate torques at time
-        torque(j,0) = (g - jerk(j,2))*m/(cos(phi)*cos(theta));
-        torque(j,1) = pdot*Ix + (Iz - Iy)*q*r;
-        torque(j,2) = qdot*Iy + (Ix - Iz)*p*r;
-        torque(j,3) = rdot*Iz + (Iy - Ix)*p*q;
+        //torque(j,0) = (g - jerk(j,2))*m/(cos(phi)*cos(theta));
+        //torque(j,1) = pdot*Ix + (Iz - Iy)*q*r;
+        //torque(j,2) = qdot*Iy + (Ix - Iz)*p*r;
+        //torque(j,3) = rdot*Iz + (Iy - Ix)*p*q;
 
-        traj.appendTorque(torque);
+        //traj.appendTorque(torque);
+
+        oldState = state;
     }
 
-    traj.appendAll();
+    //traj.appendAll();
+
+    pp_logger->debug("end of path generation");
+    pp_logger->flush();
 
     return traj; //validTorques(torques);
 }
