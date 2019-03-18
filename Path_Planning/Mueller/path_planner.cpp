@@ -437,7 +437,7 @@ Trajectory path_planner::jerkToPath(double time, const VectorXd& beginState, Mat
 
 
     Trajectory traj;
-    VectorXd state;
+    VectorXd state(12);
     VectorXd oldState = beginState;
     double timeDiff;
     Vector4d torque;
@@ -458,10 +458,9 @@ Trajectory path_planner::jerkToPath(double time, const VectorXd& beginState, Mat
         state(5) = vel(i,2);
         //state.block<3,1>(3,0) << vel.block<1,3>(i,0);
 
-        //double psi;
-        //if(look_at_pos) psi = getYawToHoop(pos, pos_to_look_at);
-        //else psi = beginState(8);
-        double psi = 0;
+        double psi;
+        if(look_at_pos) psi = getYawToHoop(pos, pos_to_look_at);
+        else psi = beginState(8);
 
         state(8) = psi;
         state(7) = atan(1/(g-acc(i,2)) * (acc(i,1)*sin(psi) - acc(i,0))/(1-2*pow(sin(psi),2)));
