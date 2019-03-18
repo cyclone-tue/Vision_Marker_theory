@@ -157,6 +157,12 @@ void test_PP(){
     hoopRotMat << 1,0,0, 0,1,0, 0,0,1;
 
     Trajectory traj = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat);
+    if(not traj.valid || traj.time(-1) == 0){
+        vpp_logger->error("Test was unsuccessful...");
+        vpp_logger->info("End of test.");
+        vpp_logger->flush();
+        return;
+    }
 
     MatrixXd thrusts(torques.rows(), 4);
     for(int i = 0; i < torques.rows(); i++){
@@ -172,10 +178,6 @@ void test_PP(){
 
     showPathInteractive(traj, hoopTransVec, hoopRotMat);
 
-
-    if(not traj.valid){
-        vpp_logger->error("Test was unsuccessful...");
-    }
     vpp_logger->info("End of test.");
     return;
 }

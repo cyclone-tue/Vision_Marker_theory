@@ -50,10 +50,15 @@ void Trajectory::increment_mark(int mark){
 
 
 double Trajectory::time(int mark){
-    return times(index(mark));
+    int maxIndex = index(mark);
+    double time = 0;
+    for(int i = 0; i < maxIndex; i++){
+        time += times(i);
+    }
+    return time;
 }
 Vector4d Trajectory::torque(int mark){
-    return torques.row(index(mark));
+    return torques.row(index(mark)-1);
 }
 VectorXd Trajectory::state(int mark){
     pp_logger->debug("Starting state(mark)");
@@ -127,11 +132,7 @@ void Trajectory::collapse(MatrixXd& pathRef, VectorXd& timesRef, MatrixXd& torqu
 void Trajectory::appendState(VectorXd appendedState){
     MatrixXd newExtraPath(extraPath.rows() + 1, 12);
     newExtraPath << extraPath, appendedState;
-    pp_logger->debug("the newExtraPath is {}", newExtraPath);
-    pp_logger->flush();
     extraPath = newExtraPath;
-    pp_logger->debug("the extraPath is {}", extraPath);
-    pp_logger->flush();
     return;
 }
 void Trajectory::appendTime(double appendedTime){
@@ -147,11 +148,12 @@ void Trajectory::appendTorque(Vector4d appendedTorque){
     return;
 }
 void Trajectory::appendAll(){
-    MatrixXd newPath;
-    VectorXd newTimes;
-    MatrixXd newTorques;
 
-    newPath << path.block(0,0, path.rows()-1,12), extraPath;
+    MatrixXd newPath(std::max(0, (int) path.rows()-1) + extraPath.rows(), 12);
+    VectorXd newTimes(times.size() + extraTimes.size());
+    MatrixXd newTorques(torques.rows() + extraTorques.rows(), 4);
+
+    newPath << path.block(0,0, std::max(0, (int) path.rows()-1) ,12), extraPath;
     newTimes << times, extraTimes;
     newTorques << torques, extraTorques;
 

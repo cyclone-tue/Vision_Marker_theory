@@ -73,7 +73,7 @@ Trajectory path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Ve
     VectorXd beginState = currentState;
 
     int waypoints = constraints.size() - 2;
-    bool success = true;
+
 
     if(waypoints == 1){
         pp_logger->debug("constraints :\n {},\n {},\n {}", constraints.at(0), constraints.at(1), constraints.at(2));
@@ -87,7 +87,9 @@ Trajectory path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Ve
 
     for (int i = 0; i <= waypoints; i++) {							// iterate over path intervals.
 
-        //std::vector<Matrix3d> segmentConstraints = {constraints.at(i), constraints.at(i+1)};
+        std::vector<Matrix3d> segmentConstraints = {constraints.at(i), constraints.at(i+1)};
+        pp_logger->debug("Starting path segment {}", i+1);
+        pp_logger->flush();
         pp_logger->debug("Starting path segment {}", i+1);
         pp_logger->flush();
         //traj.append(gotoWaypoint(traj.state(-1), segmentConstraints, hoopTransVec, i!=waypoints));

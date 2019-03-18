@@ -8,6 +8,7 @@
 #include <Eigen/Dense>
 #include <stdexcept>
 #include <vector>
+#include <algorithm>
 
 using namespace Eigen;
 
