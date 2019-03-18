@@ -135,10 +135,11 @@ double *output_simple_path(double* currentStateArray, int *pathLength) {
         Matrix3d afterData = path_planner::get_ders_hoop_to_world(0.5, 1, hoopTransVec, hoopRotMat);
         cout << "Before point: " << beforeData << endl;
         cout << "After point: " << afterData << endl;
-        *pathLength = 2;
+        *pathLength = 3;
         MatrixXd outputPath(*pathLength,3);
         outputPath.row(0) = beforeData.col(0);
-        outputPath.row(1) = afterData.col(0);
+        outputPath.row(1) = hoopTransVec;
+        outputPath.row(2) = afterData.col(0);
         cout << "Test path: " << outputPath << endl;
         double output_array[*pathLength][12 + 1 + 4];
         Map<MatrixXd>(&output_array[0][0], outputPath.rows(), outputPath.cols()) = outputPath;
