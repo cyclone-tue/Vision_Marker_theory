@@ -333,6 +333,11 @@ bool path_planner::jerkToPath(double time, VectorXd& beginState, MatrixXd& pos, 
         path(i,6) = -atan(-acc(i,1)/(g-acc(i,2)) * cos(theta)/cos(psi) - tan(psi)*sin(theta));
         double phi = path(i,6);
 
+        // temporary fix for xander
+        path(i,6) = acc(i,0);
+        path(i,7) = acc(i,1);
+        path(i,8) = acc(i,2);
+
         double phidot = (path(i,6) - path(i-1,6))/dt;       // this can be done better...
         double thetadot = (path(i,7) - path(i-1,7))/dt;
         double psidot = (path(i,8) - path(i-1,8))/dt;
