@@ -4,6 +4,7 @@
 
 #include "trajectory.h"
 #include "../logging.h"
+#include "spdlog/fmt/ostr.h"
 
 // ==== public functions ====
 
@@ -126,7 +127,11 @@ void Trajectory::collapse(MatrixXd& pathRef, VectorXd& timesRef, MatrixXd& torqu
 void Trajectory::appendState(VectorXd appendedState){
     MatrixXd newExtraPath(extraPath.rows() + 1, 12);
     newExtraPath << extraPath, appendedState;
+    pp_logger->debug("the newExtraPath is {}", newExtraPath);
+    pp_logger->flush();
     extraPath = newExtraPath;
+    pp_logger->debug("the extraPath is {}", extraPath);
+    pp_logger->flush();
     return;
 }
 void Trajectory::appendTime(double appendedTime){

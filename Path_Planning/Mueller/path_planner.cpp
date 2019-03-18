@@ -87,12 +87,15 @@ Trajectory path_planner::run(VectorXd& currentState, Vector4d& currentTorque, Ve
 
     for (int i = 0; i <= waypoints; i++) {							// iterate over path intervals.
 
-        std::vector<Matrix3d> segmentConstraints = {constraints.at(i), constraints.at(i+1)};
+        //std::vector<Matrix3d> segmentConstraints = {constraints.at(i), constraints.at(i+1)};
         pp_logger->debug("Starting path segment {}", i+1);
         pp_logger->flush();
-        traj.append(gotoWaypoint(traj.state(-1), segmentConstraints, hoopTransVec, i!=waypoints));
+        //traj.append(gotoWaypoint(traj.state(-1), segmentConstraints, hoopTransVec, i!=waypoints));
 
     }
+
+    pp_logger->debug("end of run()");
+    pp_logger->flush();
 
     return traj;
 }
