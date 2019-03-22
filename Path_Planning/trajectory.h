@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
+#include <map>
 
 using namespace Eigen;
 
@@ -30,9 +31,9 @@ class Trajectory {
         void replace(int mark0, int mark1, Trajectory traj);
         void collapse(MatrixXd& pathRef, VectorXd& timesRef, MatrixXd& torquesRef, bool& validRef);
 
-        void appendState(VectorXd state);
-        void appendTime(double time);
-        void appendTorque(Vector4d state);
+        void appendState(const VectorXd state);
+        void appendTime(const double time);
+        void appendTorque(const Vector4d state);
         void appendAll();
 
 
@@ -51,6 +52,8 @@ class Trajectory {
         VectorXd extraTimes;
         MatrixXd extraTorques;
         std::vector<Vector2d> marks;
+        //std::map<int, int> marks;
+        int maxMark = 0;
         int index(int mark);
         int markIndex(int mark);
         void reduce();

@@ -130,8 +130,6 @@ void path_planner::removeElement(VectorXd& vec, int indexToRemove){
 
 Trajectory path_planner::gotoWaypoint(VectorXd beginState, std::vector<Matrix3d> constraints, Vector3d pos_to_look_at, bool look_at_pos){
 
-    pp_logger->debug("huh");
-    pp_logger->flush();
 
     Trajectory traj;
 
@@ -139,11 +137,7 @@ Trajectory path_planner::gotoWaypoint(VectorXd beginState, std::vector<Matrix3d>
 
     // find a suitable upper time limit to start with.
     double t_max = 1;
-    pp_logger->debug("this");
-    pp_logger->flush();
     for(t_max = 1; (not getPathSegment(t_max, beginState, constraints.at(0), constraints.at(1), pos_to_look_at, look_at_pos).valid) and t_max <= 2000; t_max *= 2){}
-    pp_logger->debug("found upper time limit");
-    pp_logger->flush();
 
     traj = getPathSegment(t_max, beginState, constraints.at(0), constraints.at(1), pos_to_look_at, look_at_pos);
     if(not traj.valid){
@@ -176,17 +170,36 @@ Trajectory path_planner::gotoWaypoint(VectorXd beginState, std::vector<Matrix3d>
 
     for(int segments = 2; traj.maxTimeDif() > 0.01; segments *= 2){
 
+        MatrixXd path;
+        VectorXd times;
+        MatrixXd torques;
+        bool valid;
+
+        traj.collapse(path, times, torques, valid);
+        pp_logger->debug("the path is \n {}", path);
+        pp_logger->debug("valid is {}", valid);
+        //pp_logger->debug("the times is \n {}, path);
+        //pp_logger->debug("the path is \n {}, path);
+        pp_logger->debug("maxtimedif is {}", traj.maxTimeDif());
+        pp_logger->flush();
+
         std::vector<int> marks;
         for(int seg = 0; seg <= segments; seg++){
             marks.push_back(traj.mark(traj.time(-1)/segments));
         }
+
 
         for(int markIndex = 0; markIndex < marks.size()-1; markIndex++){
 
             int mark0 = marks.at(markIndex);
             int mark1 = marks.at(markIndex+1);
 
-            traj.replace(mark0, mark1, getPathSegment(traj.time(mark1) - traj.time(mark0), traj.state(mark0), stateToPosDers(traj.state(mark0), traj.torque(mark0)), stateToPosDers(traj.state(mark1), traj.torque(mark1)), pos_to_look_at, look_at_pos));
+            Matrix3d constraint0 = stateToPosDers(traj.state(mark0), traj.torque(mark0));
+            Matrix3d constraint1 = stateToPosDers(traj.state(mark1), traj.torque(mark1));
+
+            Trajectory newTraj = getPathSegment(traj.time(mark1) - traj.time(mark0), traj.state(mark0), constraint0, constraint1, pos_to_look_at, look_at_pos);
+
+            traj.replace(mark0, mark1, newTraj);
         }
     }
 
@@ -255,13 +268,8 @@ Trajectory path_planner::getPathSegment(double time, const VectorXd& currentStat
 
     bool success = true;
 
-    pp_logger->debug("here");
-    pp_logger->flush();
-
     Trajectory traj;
 
-    pp_logger->debug("here2");
-    pp_logger->flush();
 
     Vector3d beginX = beginConstraint.row(0);
     Vector3d endX = endConstraint.row(0);
@@ -279,8 +287,6 @@ Trajectory path_planner::getPathSegment(double time, const VectorXd& currentStat
     VectorXd accCol(n+2);
     VectorXd jerkCol(n+1);
 
-    pp_logger->debug("here");
-    pp_logger->flush();
 
     success &= getSegment1D(time, beginX, endX, posCol, velCol, accCol, jerkCol, 'x');  // includes end point (should have n+2 elements)
     pos.col(0) = posCol;
@@ -298,14 +304,10 @@ Trajectory path_planner::getPathSegment(double time, const VectorXd& currentStat
     acc.col(2) = accCol;
     jerk.col(2) = jerkCol;
 
-    pp_logger->debug("success is {}", success);
-    pp_logger->flush();
 
     traj.valid = success;
     if(not traj.valid) return traj;
 
-    pp_logger->debug("successful");
-    pp_logger->flush();
 
     traj = jerkToPath(time, currentState, pos, vel, acc, jerk, pos_to_look_at, look_at_pos);  // excludes end point
     traj.valid = success;
@@ -479,30 +481,27 @@ Trajectory path_planner::jerkToPath(double time, const VectorXd& beginState, Mat
         double q = state(10);
         double r = state(11);
 
-        //traj.appendState(state);
+        traj.appendState(state);
 
-        //double pdot = (state(i,9) - state(i-1,9))/dt;
-        //double qdot = (state(i,10) - state(i-1,10))/dt;
-        //double rdot = (state(i,11) - state(i-1,11))/dt;
+        double pdot = (state(9) - oldState(9))/dt;
+        double qdot = (state(10) - oldState(10))/dt;
+        double rdot = (state(11) - oldState(11))/dt;
 
         // time interval
-        //traj.appendTime(dt);
+        traj.appendTime(dt);
 
         // calculate torques at time
-        //torque(j,0) = (g - jerk(j,2))*m/(cos(phi)*cos(theta));
-        //torque(j,1) = pdot*Ix + (Iz - Iy)*q*r;
-        //torque(j,2) = qdot*Iy + (Ix - Iz)*p*r;
-        //torque(j,3) = rdot*Iz + (Iy - Ix)*p*q;
+        torque(0) = (g - jerk(j,2))*m/(cos(phi)*cos(theta));
+        torque(1) = pdot*Ix + (Iz - Iy)*q*r;
+        torque(2) = qdot*Iy + (Ix - Iz)*p*r;
+        torque(3) = rdot*Iz + (Iy - Ix)*p*q;
 
-        //traj.appendTorque(torque);
+        traj.appendTorque(torque);
 
         oldState = state;
     }
 
-    //traj.appendAll();
-
-    pp_logger->debug("end of path generation");
-    pp_logger->flush();
+    traj.appendAll();
 
     return traj; //validTorques(torques);
 }

@@ -34,11 +34,11 @@ int Trajectory::mark(double time){
         difference0 = abs(time - integral);
     }
     int mark;
-    if(marks.size() == 0){
-        mark = 1;
-    } else{
-        mark = marks.at(marks.size() - 1)(0) + 1;
-    }
+    //if(marks.size() == 0){
+    //    mark = 1;
+    //} else{
+        mark = maxMark + 1;
+    //}
     Vector2d new_element = {mark, index};
     marks.push_back(new_element);
     return mark;
@@ -61,8 +61,6 @@ Vector4d Trajectory::torque(int mark){
     return torques.row(index(mark)-1);
 }
 VectorXd Trajectory::state(int mark){
-    pp_logger->debug("Starting state(mark)");
-    pp_logger->flush();
     return path.row(index(mark));
 }
 
@@ -95,6 +93,7 @@ void Trajectory::replace(int mark0, int mark1, Trajectory traj){
     bool appendedValid;
     traj.collapse(appendedPath, appendedTimes, appendedTorques, appendedValid);
 
+
     MatrixXd newPath(path.rows() - (index(mark1) + 1 - index(mark0)) + appendedPath.rows(), 12);
     VectorXd newTimes(times.size() + appendedTimes.size());
     MatrixXd newTorques(torques.rows() + appendedTorques.rows(), 4);
@@ -108,12 +107,17 @@ void Trajectory::replace(int mark0, int mark1, Trajectory traj){
     times = newTimes;
     torques = newTorques;
 
+
     for(int i = 0; i < marks.size(); i++){
         if(marks.at(index(mark0))(1) < marks.at(i)(1) and marks.at(i)(1) < marks.at(index(mark1))(1)){
             marks.erase(marks.begin() + i);
         }
         else if(marks.at(i)(1) >= marks.at(index(mark1))(1)){
-            marks.at(i)(1) += appendedPath.rows() - (index(mark1) + 1 - index(mark0));
+            Vector2d newMark;
+            newMark << marks.at(i)(0), marks.at(i)(1) + appendedPath.rows() - (index(mark1) + 1 - index(mark0));
+            //marks.at(i) << newMark(0), newMark(1);
+            marks.push_back(newMark);
+            marks.erase(marks.begin() + 1);
         }
     }
 
@@ -129,19 +133,22 @@ void Trajectory::collapse(MatrixXd& pathRef, VectorXd& timesRef, MatrixXd& torqu
 }
 
 
-void Trajectory::appendState(VectorXd appendedState){
+void Trajectory::appendState(const VectorXd appendedState){
     MatrixXd newExtraPath(extraPath.rows() + 1, 12);
-    newExtraPath << extraPath, appendedState;
+    newExtraPath.block(0,0, extraPath.rows(),12) << extraPath;
+    newExtraPath.block(0,0, 1,12) << appendedState;
+    //newExtraPath << extraPath, appendedState;
     extraPath = newExtraPath;
+    pp_logger->debug("extrapath is \n {}", extraPath);
     return;
 }
-void Trajectory::appendTime(double appendedTime){
+void Trajectory::appendTime(const double appendedTime){
     VectorXd newExtraTimes(extraTimes.rows() + 1);
     newExtraTimes << extraTimes, appendedTime;
     extraTimes = newExtraTimes;
     return;
 }
-void Trajectory::appendTorque(Vector4d appendedTorque){
+void Trajectory::appendTorque(const Vector4d appendedTorque){
     MatrixXd newExtraTorques(extraTorques.rows() + 1, 4);
     newExtraTorques << extraTorques, appendedTorque;
     extraTorques = newExtraTorques;
