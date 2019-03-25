@@ -73,7 +73,7 @@ class path_planner{
         static bool validTorques(MatrixXd& torques);
         static void load_data(double time, Vector3d beginState, Vector3d endState, char dim);
         static Vector2d getAccLimit(char dim);
-        static Trajectory gotoWaypoint(VectorXd beginState, std::vector<Matrix3d> constraints, Vector3d pos_to_look_at, bool look_at_pos);
+        static Trajectory gotoWaypoint(VectorXd beginState, Vector4d beginTorque, std::vector<Matrix3d> constraints, Vector3d pos_to_look_at, bool look_at_pos);
         static double getYawToHoop(Vector3d pos, Vector3d pos_to_look_at);
         static void sewTogetherPath(std::vector<MatrixXd> subPaths, std::vector<VectorXd> subTimeDiffs, std::vector<MatrixXd> subTorques, MatrixXd& path, VectorXd& timeDiffs, MatrixXd& torques);
         static void removeRow(MatrixXd& matrix, int rowToRemove);

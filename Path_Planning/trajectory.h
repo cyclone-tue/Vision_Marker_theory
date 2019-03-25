@@ -13,6 +13,11 @@
 
 using namespace Eigen;
 
+typedef Matrix<double, 12, 1> Vector12d;
+typedef Matrix<double, Dynamic, 12> MatrixX12;
+typedef Matrix<double, Dynamic, 3> MatrixX3;
+
+
 class Trajectory {
 
 
@@ -34,23 +39,31 @@ class Trajectory {
         void appendState(const VectorXd state);
         void appendTime(const double time);
         void appendTorque(const Vector4d state);
+        void appendAcc(const Vector3d acc);
+        void appendJerk(const Vector3d jerk);
         void appendAll();
-
-
-
 
         double maxTimeDif();
         double min(char dim);
         double max(char dim);
 
+        void log();
+
+        void setBeginTorque(Vector4d torque);
 
     private:
-        MatrixXd path;
+        MatrixX12 path;      // can be made public for debugging purposes
         VectorXd times;
-        MatrixXd torques;
-        MatrixXd extraPath;
+        Matrix<double, Dynamic, 4> torques;
+        MatrixX3 accs;
+        MatrixX3 jerks;
+
+        MatrixX12 extraPath;
         VectorXd extraTimes;
-        MatrixXd extraTorques;
+        Matrix<double, Dynamic, 4> extraTorques;
+        MatrixX3 extraAccs;
+        MatrixX3 extraJerks;
+        Vector4d beginTorque;
         std::vector<Vector2d> marks;
         //std::map<int, int> marks;
         int maxMark = 0;
