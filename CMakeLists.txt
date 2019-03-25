@@ -33,7 +33,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 find_package(OpenCV REQUIRED)
 list(APPEND OpenCV_LIBS opencv_aruco)
 include_directories(${OPENCV_INCLUDE_DIRS})
-include_directories("/usr/include/spdlog")
+#include_directories("/usr/include/spdlog")
 #include_directories(~/spdlog/include)       # v1.3.1
 add_library(opencv INTERFACE IMPORTED)
 set_property(TARGET opencv PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OPENCV_INCLUDE_DIR})
@@ -89,5 +89,7 @@ target_link_libraries(V_PP ${Boost_LIBRARIES})
 
 # something else
 add_dependencies(CycloneVision opencv)
+add_dependencies(CycloneVision spdlog)
+add_dependencies(CycloneVision gnuplot)
 add_dependencies(V_PP spdlog)
 add_dependencies(V_PP gnuplot)
