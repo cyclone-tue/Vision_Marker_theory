@@ -72,7 +72,7 @@ add_executable(V_PP  ${VISION} ${MUELLER}  V_PP.cpp logging.cpp general.cpp)
 ## build libraries
 
 # Building the main library
-add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp logging.cpp)
+add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp logging.cpp general.cpp)
 
 
 ## link libraries
@@ -85,6 +85,7 @@ target_link_libraries(CycloneVision ${OpenCV_LIBS})
 target_link_libraries(V_PP ${OpenCV_LIBS})
 #target_link_libraries(WebcamTest ${OpenCV_LIBS})
 target_link_libraries(V_PP ${Boost_LIBRARIES})
+target_link_libraries(CycloneVision ${Boost_LIBRARIES})
 
 
 # something else
