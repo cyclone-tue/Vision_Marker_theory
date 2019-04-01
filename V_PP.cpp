@@ -124,6 +124,34 @@ bool runFrame(VectorXd& currentState, Vector4d& currentTorque, MatrixXd& path, V
     return success;
 }
 
+double *output_simple_path(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize) {
+    VectorXd currentState(12);
+    Vector3d hoopTransVec;
+    Matrix3d hoopRotMat;
+    currentState = arrayToEigen(currentStateArray, 12);
+    bool foundHoop = vision::run(currentState, hoopTransVec, hoopRotMat);
+    if(foundHoop){
+        Matrix3d beforeData = path_planner::get_ders_hoop_to_world(-0.5, 1, hoopTransVec, hoopRotMat);
+        Matrix3d afterData = path_planner::get_ders_hoop_to_world(0.5, 1, hoopTransVec, hoopRotMat);
+        cout << "Before point: " << beforeData << endl;
+        cout << "After point: " << afterData << endl;
+        *pathLength = 3;
+        MatrixXd outputPath(*pathLength,3);
+        outputPath.row(0) = beforeData.col(0);
+        outputPath.row(1) = hoopTransVec;
+        outputPath.row(2) = afterData.col(0);
+        cout << "Test path: " << outputPath << endl;
+        double output_array[*pathLength][12 + 1 + 4];
+        Map<MatrixXd>(&output_array[0][0], outputPath.rows(), outputPath.cols()) = outputPath;
+        double* output_ptr;
+        output_ptr = &output_array[0][0];
+        return output_ptr;
+    }
+
+    *pathLength = 0;
+    return nullptr;
+}
+
 VectorXd arrayToEigen(double* array, int length){
     VectorXd vector(length);
     for(int i = 0; i < length; i++){
@@ -187,14 +215,14 @@ void test_V_PP(){
 
     double *output_ptr;   // contains path, timeDiffs, torques
     while(true){
-        output_ptr = output_to_py(currentState, currentTorque, pathLength, visualize);
+        output_ptr = output_simple_path(currentState, currentTorque, pathLength, visualize);
     }
     return;
 }
 
 
 int main(){
-    test_PP();
+    test_V_PP();
     return 0;
 }
 
