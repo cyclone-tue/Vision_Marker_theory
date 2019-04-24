@@ -73,7 +73,7 @@ return value    : pointer to array of doubles, being the elements([row0,row1, ..
                             : the first element is the time difference between the current time and the time of the first state in path.
                 : torques   : each row is the [thrust, torqueX, torqueY, torqueZ] corresponding to the same row in path.
 */
-double* output_to_py(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize){
+bool output_to_py(double* output, double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize){
 
     VectorXd currentState(12);      // input variables
     Vector4d currentTorque;
@@ -91,20 +91,21 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
     }
     if(success) {
         *pathLength = path.rows();
-        MatrixXd outputInfo(*pathLength, 3);
-        outputInfo = path.block(0,0, path.rows(),3);
+        MatrixXd outputInfo(*pathLength, 12+1+4);
+        outputInfo << path, timeDiffs, torques;
 
         vpp_logger->debug("path: \n{}", outputInfo);
 
 
         //copy path to output array
         double output_array[*pathLength][12 + 1 + 4];
-        Map<MatrixXd>(&output_array[0][0], outputInfo.rows(), outputInfo.cols()) = outputInfo;
-        output_ptr = &output_array[0][0];
-        return output_ptr;
+        Map<MatrixXd>(output, outputInfo.rows(), outputInfo.cols()) = outputInfo;
+        //output_ptr = &output_array[0][0];
+        //return output_ptr;
+        return true;
     }
     
-    return nullptr;
+    return false;
 }
 
 

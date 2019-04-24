@@ -38,7 +38,7 @@ VectorXd arrayToEigen(double* array, int length);
 int main();
 
 extern "C" {
-    double *output_to_py(double* currentStateArray, double* currentTorqueArray, int *pathLength, bool visualize);
+    bool output_to_py(double* output, double* currentStateArray, double* currentTorqueArray, int *pathLength, bool visualize);
     void setup(const char* camera_calibration_file);
     void cleanup();
     double *output_simple_path(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize); //Output a path consisting of 2 points. One before the hoop one after.
