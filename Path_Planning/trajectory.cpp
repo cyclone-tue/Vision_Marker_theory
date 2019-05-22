@@ -8,18 +8,86 @@
 
 // ==== public functions ====
 
+
+void Trajectory::testTrajectory(){
+
+    // test appendState()
+    Vector12d test12;
+    test12 << 0,1,2,3,4,5,6,7,8,9,10,11;
+
+    Trajectory traj = Trajectory();
+
+    traj.appendState(test12);
+    pp_logger->debug("extraPath: {}", traj.extraPath);
+    // test appendTime()
+    double testD = 13;
+    traj.appendTime(testD);
+    pp_logger->debug("extraTimes: {}", traj.extraTimes);
+    // test appendTorque()
+    Vector4d test4;
+    test4 << 3,2,1,0;
+    traj.appendTorque(test4);
+    pp_logger->debug("extraTorques: {}", traj.extraTorques);
+    // test appendAcc()
+    Vector3d test3;
+    test3 << 2,1,0;
+    traj.appendAcc(test3);
+    pp_logger->debug("extraAccs: {}", traj.extraAccs);
+    // test appendJerk()
+    traj.appendJerk(test3);
+    pp_logger->debug("extraJerks: {}", traj.extraJerks);
+
+    // test appendAll()
+    try{
+        traj.appendState(test12);
+        traj.appendAcc(test3);
+        traj.appendJerk(test3);
+        traj.appendAll();
+        pp_logger->debug("appendAll: path:\n{} times:\n{} torques:\n{} accs:\n{} jerks:\n{}", traj.path, traj.times, traj.torques, traj.accs, traj.jerks);
+        traj.appendState(test12);
+        traj.appendAcc(test3);
+        traj.appendJerk(test3);
+        traj.appendTorque(test4);
+        traj.appendTime(testD);
+        traj.appendAll();
+        pp_logger->debug("appendAll: path:\n{} times:\n{} torques:\n{} accs:\n{} jerks:\n{}", traj.path, traj.times, traj.torques, traj.accs, traj.jerks);
+    }
+    catch( const std::invalid_argument& e ) {
+        pp_logger->error("error in appendAll()");
+    }
+
+    // test mark()
+    int mark0 = traj.mark(13);
+    int mark1 = traj.mark(29);
+
+    // test log()
+    traj.log();
+
+    // test replace()
+    traj.replace(mark0, mark1, traj);
+    traj.log();
+    traj.replace(traj.mark(0), traj.mark(13), traj);
+    traj.log();
+
+    pp_logger->debug("end of testTrajectory()");
+    return;
+}
+
+
+
 Trajectory::Trajectory(){
     valid = true;
-    path = MatrixX12(0);
+    path = MatrixX12(0, 12);
     times = VectorXd(0);
-    torques = Matrix<double, Dynamic, 4>(0);
-    accs = MatrixX3(0);
-    jerks = MatrixX3(0);
-    extraPath = MatrixX12(0);
+    torques = Matrix<double, Dynamic, 4>(0, 4);
+    accs = MatrixX3(0, 3);
+    jerks = MatrixX3(0, 3);
+    extraPath = MatrixX12(0, 12);
     extraTimes = VectorXd(0);
-    extraTorques = Matrix<double, Dynamic, 4>(0);
-    extraAccs = MatrixX3(0);
-    extraJerks = MatrixX3(0);
+    extraTorques = Matrix<double, Dynamic, 4>(0, 4);
+    extraAccs = MatrixX3(0, 3);
+    extraJerks = MatrixX3(0, 3);
+    beginTorque = {0,0,0,0};
     return;
 }
 
@@ -43,11 +111,11 @@ int Trajectory::mark(double time){
 
     Vector2d new_element = {mark, index};
 
-    //pp_logger->debug("new marker is {}", new_element);
-
     marks.push_back(new_element);
     return mark;
 }
+
+// should give an error when the mark cannot be increased.
 void Trajectory::increment_mark(int mark){
     marks.at(markIndex(mark))(1) += 1;
     return;
@@ -68,32 +136,24 @@ Vector4d Trajectory::torque(int mark){
 VectorXd Trajectory::state(int mark){
     return path.row(index(mark));
 }
+Vector3d Trajectory::acc(int mark){
+    return accs.row(index(mark));
+}
+Vector3d Trajectory::jerk(int mark){
+    return jerks.row(index(mark));
+}
+
 
 
 void Trajectory::append(Trajectory traj){   // implement using replace();
-    MatrixXd appendedPath;
-    VectorXd appendedTimes;
-    MatrixXd appendedTorques;
-    bool appendedValid;
-    traj.collapse(appendedPath, appendedTimes, appendedTorques, appendedValid);
-
-    MatrixXd newPath(path.rows() - 1 + appendedPath.rows(), 12);
-    VectorXd newTimes(times.size() + appendedTimes.size());
-    MatrixXd newTorques(torques.rows() + appendedTorques.rows(), 4);
-    valid &= appendedValid;
-
-    newPath << path.block(0,0, path.rows()-1,12), appendedPath;
-    newTimes << times, appendedTimes;
-    newTorques << torques, appendedTorques;
-
-    path = newPath;
-    times = newTimes;
-    torques = newTorques;
+    replace(-1, -1, traj);
     return;
 }
 
 // only works if new trajectory is larger.
 void Trajectory::replace(int mark0, int mark1, Trajectory traj){
+
+    // all new data
     MatrixX12 appendedPath;
     VectorXd appendedTimes;
     Matrix<double, Dynamic, 4> appendedTorques;
@@ -105,18 +165,28 @@ void Trajectory::replace(int mark0, int mark1, Trajectory traj){
     int index0 = index(mark0);
     int index1 = index(mark1);
 
-    int oldPathSize = path.rows();
-    int newPathsize = path.rows() - (index1 + 1 - index0) + appendedPath.rows();
-    path.conservativeResize(newPathsize);
-    times.conservativeResize(newPathsize - 1, 1);
-    torques.conservativeResize(newPathsize - 1, 4);
-    accs.conservativeResize(newPathsize, 3);
-    jerks.conservativeResize(newPathsize, 3);
+    int intervalls0 = index(mark0) - index(0);
+    int intervalls1 = appendedTimes.size();
+    int intervalls1old = index(mark1) - index(mark0);
+    int intervalls2 = index(-1) - index(mark1);
+    int intervalls = intervalls0 + intervalls1 + intervalls2;
+
+    int points0 = intervalls0;
+    int points1 = intervalls1 + 1;
+    int points1old = intervalls1old + 1;
+    int points2 = intervalls2;
+    int points = points0 + points1 + points2;
+
+    path.conservativeResize(points, 12);
+    times.conservativeResize(intervalls, 1);
+    torques.conservativeResize(intervalls, 4);
+    accs.conservativeResize(points, 3);
+    jerks.conservativeResize(points, 3);
     valid &= appendedValid;
 
     int numOfMarks = marks.size();          // update markers
-    int index0 = index(mark0);
-    int index1 = index(mark1);
+    index0 = index(mark0);
+    index1 = index(mark1);
     for(int i = numOfMarks-1; i >= 0; i--){
         if(index0 < marks.at(i)(1) and marks.at(i)(1) < index1){
             marks.erase(marks.begin() + i);
@@ -130,96 +200,105 @@ void Trajectory::replace(int mark0, int mark1, Trajectory traj){
     }
 
     // move end of path to end of matrix.
-    path.block(index(mark0) + appendedPath.rows(),0, oldPathSize - index(mark1),12) << path.block(index(mark1),0, oldPathSize - index(mark1),12);
-    times.block(index(mark0) + appendedPath.rows(),0, oldPathSize - index(mark1),12) << times.block(index(mark1),0, oldPathSize - index(mark1),12);
-    torques.block(index(mark0) + appendedPath.rows(),0, oldPathSize - index(mark1),12) << torques.block(index(mark1),0, oldPathSize - index(mark1),12);
-    accs.block(index(mark0) + appendedPath.rows(),0, oldPathSize - index(mark1),12) << accs.block(index(mark1),0, oldPathSize - index(mark1),12);
-    jerks.block(index(mark0) + appendedPath.rows(),0, oldPathSize - index(mark1),12) << jerks.block(index(mark1),0, oldPathSize - index(mark1),12);
+    path.bottomRows(points2) << path.block(points0 + points1old,0, points2,12);
+    times.tail(intervalls2) << times.segment(intervalls0 + intervalls1old, intervalls2);
+    torques.bottomRows(intervalls2) << torques.block(intervalls0 + intervalls1old,0, intervalls2,12);
+    accs.bottomRows(points2) << accs.block(points0 + points1old,0, points2,3);
+    jerks.bottomRows(points2) << jerks.block(points0 + points1old,0, points2,3);
 
-
-    path.block(index(mark0),0, index(mark0),12)
-
-    newPath << path.block(0,0, index(mark0),12), appendedPath, path.block(index(mark1)+1,0, path.rows() - index(mark1) - 1,12);
-    newTimes << times.block(0,0, index(mark0),1), appendedTimes, times.block(index(mark1),0, times.size()-index(mark1),1);
-    newTorques << torques.block(0,0, index(mark0),4), appendedTorques, torques.block(index(mark1),0, torques.rows() - index(mark1),4);
-
-    path = newPath;
-    times = newTimes;
-    torques = newTorques;
-
-
-
+    path.block(points0,0, points1,12) << appendedPath;
+    times.segment(intervalls0,intervalls1) << appendedTimes;
+    torques.block(intervalls0,0, intervalls1,4) << appendedTorques;
+    accs.block(points0,0, points1,3) << appendedAccs;
+    jerks.block(points0,0, points1,3) << appendedJerks;
     return;
 }
-void Trajectory::collapse(MatrixXd& pathRef, VectorXd& timesRef, MatrixXd& torquesRef, bool& validRef){
+void Trajectory::collapse(MatrixX12& pathRef, VectorXd& timesRef, MatrixX4& torquesRef, MatrixX3& accsRef, MatrixX3& jerksRef, bool& validRef){
     pathRef = path;
     timesRef = times;
     torquesRef = torques;
+    accsRef = accs;
+    jerksRef = jerks;
     validRef = valid;
     valid = false;
     return;
 }
 
 
-void Trajectory::appendState(const VectorXd appendedState){
-    MatrixXd newExtraPath(extraPath.rows() + 1, 12);
-    newExtraPath.block(0,0, extraPath.rows(),12) << extraPath.block(0,0, extraPath.rows(),12);
-    newExtraPath.row(newExtraPath.rows()-1) << appendedState.transpose();
-    extraPath = newExtraPath;
+void Trajectory::appendState(const Vector12d& appendedState){    //tested
+    extraPath.conservativeResize(extraPath.rows()+1, 12);
+    extraPath.row(extraPath.rows()-1) << appendedState.transpose();
     return;
 }
-void Trajectory::appendTime(const double appendedTime){
-    VectorXd newExtraTimes(extraTimes.rows() + 1);
-    newExtraTimes << extraTimes, appendedTime;
-    extraTimes = newExtraTimes;
+void Trajectory::appendTime(const double appendedTime){     //tested
+    extraTimes.conservativeResize(extraTimes.size()+1, 1);
+    extraTimes(extraTimes.size()-1) = appendedTime;
     return;
 }
-void Trajectory::appendTorque(const Vector4d appendedTorque){
-    MatrixXd newExtraTorques(extraTorques.rows() + 1, 4);
-    newExtraTorques.block(0,0, extraTorques.rows(),4) << extraTorques.block(0,0, extraTorques.rows(),4);
-    newExtraTorques.row(newExtraTorques.rows()-1) << appendedTorque.transpose();
-    extraTorques = newExtraTorques;
+void Trajectory::appendTorque(const Vector4d& appendedTorque){       //tested
+    extraTorques.conservativeResize(extraTorques.rows()+1, 4);
+    extraTorques.row(extraTorques.rows()-1) << appendedTorque.transpose();
     return;
 }
-void Trajectory::appendAcc(const Vector3d appendedAcc){
-    MatrixXd newExtraAccs(extraPath.rows() + 1, 12);
-    newExtraAccs.block(0,0, extraAccs.rows(),12) << extraAccs.block(0,0, extraAccs.rows(),12);
-    newExtraAccs.row(newExtraAccs.rows()-1) << appendedAcc.transpose();
-    extraAccs = newExtraAccs;
+void Trajectory::appendAcc(const Vector3d& appendedAcc){     //tested
+    extraAccs.conservativeResize(extraAccs.rows()+1, 3);
+    extraAccs.row(extraAccs.rows()-1) << appendedAcc.transpose();
     return;
 }
-void Trajectory::appendJerk(const Vector3d appendedJerk){
-    MatrixXd newExtraJerks(extraJerks.rows() + 1, 12);
-    newExtraJerks.block(0,0, extraJerks.rows(),12) << extraJerks.block(0,0, extraJerks.rows(),12);
-    newExtraJerks.row(newExtraJerks.rows()-1) << appendedJerk.transpose();
-    extraJerks = newExtraJerks;
+void Trajectory::appendJerk(const Vector3d& appendedJerk){       //tested
+    extraJerks.conservativeResize(extraJerks.rows()+1, 3);
+    extraJerks.row(extraJerks.rows()-1) << appendedJerk.transpose();
     return;
 }
-void Trajectory::appendAll(){
+// time is leading in this function
+void Trajectory::appendAll(){       //tested
 
-    MatrixXd newPath(std::max(0, (int) path.rows()-1) + extraPath.rows(), 12);
-    MatrixXd newAccs(std::max(0, (int) accs.rows()-1) + extraAccs.rows(), 12);
-    MatrixXd newJerks(std::max(0, (int) jerks.rows()-1) + extraJerks.rows(), 12);
-    VectorXd newTimes(times.size() + extraTimes.size());
-    MatrixXd newTorques(torques.rows() + extraTorques.rows(), 4);
+    int newIntervalls = extraTimes.size();
+    int oldIntervalls = times.size();
+    int intervalls = newIntervalls + oldIntervalls;
 
-    newPath << path.block(0,0, std::max(0, (int) path.rows()-1) ,12), extraPath;
-    newAccs << accs.block(0,0, std::max(0, (int) accs.rows()-1) ,12), extraAccs;
-    newJerks << jerks.block(0,0, std::max(0, (int) jerks.rows()-1) ,12), extraJerks;
-    newTimes << times, extraTimes;
-    newTorques << torques, extraTorques;
+    int oldPoints;
+    int newPoints;
+    if(oldIntervalls == 0){
+        oldPoints = 0;
+        newPoints = newIntervalls + 1;
+    } else{
+        oldPoints = oldIntervalls + 1;
+        newPoints = newIntervalls;
+    }
+    int points = oldPoints + newPoints;
 
-    path = newPath;
-    accs = newAccs;
-    jerks = newJerks;
-    times = newTimes;
-    torques = newTorques;
+    bool invalidTraj = (path.rows() != oldPoints || accs.rows() != oldPoints || jerks.rows() != oldPoints || torques.rows() != oldIntervalls);
+    //pp_logger->error("newPoints: {}, newIntervalls: {}, extraPath: {}, extraAccs: {}, extraJerks: {}, extraTorques: {}.", newPoints, newIntervalls, extraPath.rows(), extraAccs.rows(), extraJerks.rows(), extraTorques.rows());
+    bool invalidAction = (extraPath.rows() < newPoints || extraAccs.rows() < newPoints || extraJerks.rows() < newPoints || extraTorques.rows() < newIntervalls);
+    if(invalidTraj){
+        pp_logger->error("appendAll: dimensions of trajectory incorrect: path {}, accs {}, jerks {}, torques {}, times {}", path.rows(), accs.rows(), jerks.rows(), torques.rows(), times.size());
+        pp_logger->flush();
+        throw std::invalid_argument("appendAll: dimensions of trajectory incorrect");
+    }
+    if(invalidAction){
+        pp_logger->error("appendAll: dimensions of trajectory incorrect: extrapath {}, extraaccs {}, extrajerks {}, extratorques {}, extratimes {}", extraPath.rows(), extraAccs.rows(), extraJerks.rows(), extraTorques.rows(), extraTimes.size());
+        pp_logger->flush();
+        throw std::invalid_argument("appendAll: called with invalid dimensions");
+    }
 
-    extraPath = MatrixXd(0,12);
-    extraAccs = MatrixXd(0,3);
-    extraJerks = MatrixXd(0,3);
+    path.conservativeResize(points, 12);
+    path.bottomRows(newPoints) << extraPath.topRows(newPoints);
+    accs.conservativeResize(points, 3);
+    accs.bottomRows(newPoints) << extraAccs.topRows(newPoints);
+    jerks.conservativeResize(points, 3);
+    jerks.bottomRows(newPoints) << extraJerks.topRows(newPoints);
+
+    times.conservativeResize(intervalls, 1);
+    times.tail(newIntervalls) << extraTimes.head(newIntervalls);
+    torques.conservativeResize(intervalls, 4);
+    torques.bottomRows(newIntervalls) << extraTorques.topRows(newIntervalls);
+
+    extraPath = MatrixX12(0,12);
+    extraAccs = MatrixX3(0,3);
+    extraJerks = MatrixX3(0,3);
     extraTimes = VectorXd(0);
-    extraTorques = MatrixXd(0,4);
+    extraTorques = Matrix<double, Dynamic, 4>(0, 4);
     return;
 }
 
@@ -228,16 +307,18 @@ double Trajectory::maxTimeDif(){
     return times.maxCoeff();
 }
 double Trajectory::min(char dim){
-    if(dim == 'x') return path.row(0).minCoeff();
-    if(dim == 'y') return path.row(1).minCoeff();
-    if(dim == 'z') return path.row(2).minCoeff();
-    throw std::invalid_argument( "received invalid dimension" );
+    if(dim == 'x') return path.col(0).minCoeff();
+    if(dim == 'y') return path.col(1).minCoeff();
+    if(dim == 'z') return path.col(2).minCoeff();
+    pp_logger->flush();
+    throw std::invalid_argument( "min(): received invalid dimension" );
 }
 double Trajectory::max(char dim){
-    if(dim == 'x') return path.row(0).maxCoeff();
-    if(dim == 'y') return path.row(1).maxCoeff();
-    if(dim == 'z') return path.row(2).maxCoeff();
-    throw std::invalid_argument( "received invalid dimension" );
+    if(dim == 'x') return path.col(0).maxCoeff();
+    if(dim == 'y') return path.col(1).maxCoeff();
+    if(dim == 'z') return path.col(2).maxCoeff();
+    pp_logger->flush();
+    throw std::invalid_argument( "max(): received invalid dimension" );
 }
 
 
@@ -246,7 +327,7 @@ void Trajectory::log(){
     pp_logger->debug("== valid is {}", valid);
     if(not valid) {
         pp_logger->flush();
-        return;
+        //return;
     }
     pp_logger->debug("== beginTorque is {}", beginTorque);
     for(int i = 0; i < marks.size(); i++){
@@ -264,7 +345,8 @@ void Trajectory::log(){
     info.block(0,14, torques.rows(),4) << torques;
     info.block(0,18, accs.rows(),3) << accs;
     info.block(0,21, jerks.rows(),3) << jerks;
-    pp_logger->debug("== times of the marks, path, timeDifs, torques, are: \n {}", info);
+    pp_logger->debug("== times of the marks, path, timeDifs, torques, accs, jerks are: \n{}", info);
+    pp_logger->flush();
 }
 
 
@@ -287,7 +369,9 @@ int Trajectory::index(int mark){
 }
 int Trajectory::markIndex(int mark){
     if(mark == 0 || mark == -1){
-        throw std::invalid_argument( "received pre-defined marker" );
+        cout << mark << endl;
+        pp_logger->flush();
+        throw std::invalid_argument( "markIndex(): received pre-defined marker" );
     }
     for(unsigned long i = 0; i < marks.size(); i++){
         if(marks.at(i)(0) == mark){
@@ -296,7 +380,7 @@ int Trajectory::markIndex(int mark){
     }
     pp_logger->debug("markers are {}, {}, {}", marks.at(0), marks.at(1), marks.at(2));
     pp_logger->flush();
-    throw std::invalid_argument( "received invalid marker" );
+    throw std::invalid_argument( "markIndex: received invalid marker" );
 }
 
 

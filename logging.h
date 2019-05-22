@@ -30,6 +30,9 @@ extern std::shared_ptr<spdlog::logger> v_logger;
 extern Gnuplot gp;
 
 
+typedef Matrix<double, 12, 1> Vector12d;
+typedef Matrix<double, Dynamic, 12> MatrixX12;
+typedef Matrix<double, Dynamic, 3> MatrixX3;
 
 
 std::vector<std::vector<boost::tuple<double, double, double>>> getDronePoints(Vector3d pos, Vector3d ang);

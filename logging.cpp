@@ -6,10 +6,11 @@
 #include <chrono>
 #include <thread>
 
+
 /*
 path contains x times 12 elements.
  */
-void runVisualize(VectorXd& currentState, Trajectory traj, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath){
+void runVisualize(Vector12d& currentState, Trajectory traj, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath){
 
     Mat frame;
     vision::debugFrame.copyTo(frame);
@@ -67,12 +68,14 @@ void showPathInteractive(Trajectory traj, Vector3d hoopTransVec, Matrix3d hoopRo
     double time = 0;            // generate trajectory
     std::vector<boost::tuple<double, double, double>> positions;
     std::vector<boost::tuple<double, double, double>> dots;
-    for(int mark = traj.mark(traj.time(-1)); traj.time(mark) <= traj.time(-1); traj.increment_mark(mark)) {
+    for(int mark = traj.mark(0); traj.time(mark) < traj.time(-1); traj.increment_mark(mark)) {
         double x = traj.state(mark)(0);
         double y = traj.state(mark)(1);
         double z = traj.state(mark)(2);
         positions.push_back(boost::make_tuple(x, y, z));
     }
+
+
 
     double radius = 0.5;        // generate hoop
     std::vector<boost::tuple<double, double, double>> hoop;
@@ -85,20 +88,25 @@ void showPathInteractive(Trajectory traj, Vector3d hoopTransVec, Matrix3d hoopRo
         Vector3d hoopPoint_w = hoopRotMat*hoopPoint + hoopTransVec;
         hoop.push_back(boost::make_tuple(hoopPoint_w(0), hoopPoint_w(1), hoopPoint_w(2)));
     }
+    gp << "set view 240,110\n";
     gp << "set term x11 0\n";
     gp << "set xlabel 'x'\n";
     gp << "set ylabel 'y'\n";
     gp << "set zlabel 'z'\n";
+    gp << "set xrange [" << min_x - 1 << ":" << max_x + 1 << "]\n";
+    gp << "set yrange [" << min_y - 1 << ":" << max_y + 1 << "]\n";
+    gp << "set zrange [" << max_z + 1 << ":" << min_z - 1 << "]\n";
     gp << "set view equal xyz\n";
     gp << "splot '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 pt 7 ps 1\n";
     gp.send1d(positions);
     gp.send1d(hoop);
     gp.send1d(dots);
 
+    //getchar();
+
+    // new figure
     gp << "set view 240,110\n";
-
     gp << "set term x11 1\n";
-
 
     gp << "set xlabel 'x'\n";
     gp << "set ylabel 'y'\n";
@@ -113,28 +121,36 @@ void showPathInteractive(Trajectory traj, Vector3d hoopTransVec, Matrix3d hoopRo
     gp << "set view equal xyz\n";
 
     while(true) {
-        // make timer
-        for (int mark = traj.mark(traj.time(-1)); traj.time(mark) <= traj.time(-1); traj.increment_mark(mark)) {
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+
+        double elapsed_time = 0;
+        while(elapsed_time/1000 < traj.time(-1)) {
+
+            auto t1 = std::chrono::high_resolution_clock::now();
+            elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count();
+            int mark = traj.mark(elapsed_time/1000);
 
             std::vector<std::vector<boost::tuple<double, double, double>>> drone;
-            Vector3d pos = traj.state(mark).block<1, 3>(0, 0);
-            Vector3d ang = traj.state(mark).block<1, 3>(0, 6);
+            Vector3d pos = traj.state(mark).segment(0,3);
+            Vector3d ang = traj.state(mark).segment(6,3);
             drone = getDronePoints(pos, ang);
             gp
-                    << "splot '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines \n";
+                    << "splot '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines lt rgb 'black', '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines, '-' u 1:2:3 with lines \n";
             gp.send1d(positions);
             gp.send1d(hoop);
             for (int i = 0; i < static_cast<int>(drone.size()); i++) {
                 gp.send1d(drone.at(i));
             }
 
-            //std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt*1000)));
+            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(1)));    // sleep for 1 millisecond
+
 
         }
-        break;
+
     }
 
-    //getchar();    // wait for user input (to keep pipe open)
+    getchar();    // wait for user input (to keep pipe open)
     return;
 }
 

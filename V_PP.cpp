@@ -52,7 +52,7 @@ void setup(const char* camera_calibration_file){
 
 void cleanup(){
     vision::cleanup();
-    path_planner::release();
+    //path_planner::release();
     return;
 }
 
@@ -73,9 +73,10 @@ return value    : pointer to array of doubles, being the elements([row0,row1, ..
                             : the first element is the time difference between the current time and the time of the first state in path.
                 : torques   : each row is the [thrust, torqueX, torqueY, torqueZ] corresponding to the same row in path.
 */
+
 double* output_to_py(double* currentStateArray, double* currentTorqueArray, int* pathLength, bool visualize){
 
-    VectorXd currentState(12);      // input variables
+    Vector12d currentState;      // input variables
     Vector4d currentTorque;
     double* output_ptr;             // output variables
     MatrixXd path(0,12);
@@ -106,7 +107,7 @@ double* output_to_py(double* currentStateArray, double* currentTorqueArray, int*
 }
 
 
-Trajectory runFrame(VectorXd& currentState, Vector4d& currentTorque, bool visualize){
+Trajectory runFrame(Vector12d& currentState, Vector4d& currentTorque, bool visualize){
 
     bool success = false;
     Vector3d hoopTransVec;
@@ -139,22 +140,20 @@ VectorXd arrayToEigen(double* array, int length){
 
 void test_PP(){
 
-    setup("Vision/laptop_calibration.txt");
+    //setup("Vision/laptop_calibration.txt");
     vpp_logger->info("Starting test_PP()");
 
 
-    VectorXd currentState(12);  // input variables
+    Vector12d currentState;  // input variables
     Vector4d currentTorque;
     Vector3d hoopTransVec;
     Matrix3d hoopRotMat;
-    MatrixXd path(0,12);        // output variables
-    VectorXd timeDiffs(0);
-    MatrixXd torques(0,4);
 
-    currentState << 1,2,1, 0,0,0, 0,0,0, 0,0,0;         // input to the path planner
+
+    currentState << 1,2,1, 0,3,0, 0,0,0, 0,0,0;         // input to the path planner
     currentTorque << 20,0,0,0;
     hoopTransVec << 10, -3, 2;
-    hoopRotMat << 1,0,0, 0,1,0, 0,0,1;
+    hoopRotMat << .5*sqrt(2),.5*sqrt(2),0, .5*sqrt(2),-.5*sqrt(2),0, 0,0,1;
 
     Trajectory traj = path_planner::run(currentState, currentTorque, hoopTransVec, hoopRotMat);
     if(not traj.valid || traj.time(-1) == 0){
@@ -163,15 +162,17 @@ void test_PP(){
         vpp_logger->flush();
         return;
     }
+    traj.log();
 
-    MatrixXd thrusts(torques.rows(), 4);
-    for(int i = 0; i < torques.rows(); i++){
-        Vector4d torquesRow = torques.block<1,4>(i,0);
+
+    MatrixXd thrusts(traj.torques.rows(), 4);
+    for(int i = 0; i < traj.torques.rows(); i++){
+        Vector4d torquesRow = traj.torques.block<1,4>(i,0);
         thrusts.block<1,4>(i,0) = torquesToThrusts(torquesRow);
     }
 
-    MatrixXd outputInfo(path.rows(), 12+1+4+4);
-    outputInfo << path, timeDiffs, torques, thrusts;
+    MatrixXd outputInfo(traj.path.rows(), 12+1+4+4);
+    outputInfo << traj.path, traj.times, traj.torques, thrusts;
 
     vpp_logger->debug("path, timeDiffs, torques: \n{}", outputInfo);
 
@@ -182,6 +183,7 @@ void test_PP(){
     return;
 }
 
+/*
 void test_V_PP(){
     setup("Vision/laptop_calibration.txt");
     vpp_logger->info("Starting test_V_PP()");
@@ -197,9 +199,10 @@ void test_V_PP(){
     }
     return;
 }
-
+*/
 
 int main(){
+    setup("Vision/laptop_calibration.txt");
     test_PP();
     return 0;
 }

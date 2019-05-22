@@ -32,8 +32,12 @@ using Eigen::DiagonalMatrix;
 using namespace std;
 using namespace Eigen;
 
+typedef Matrix<double, 12, 1> Vector12d;
+typedef Matrix<double, Dynamic, 12> MatrixX12;
+typedef Matrix<double, Dynamic, 3> MatrixX3;
 
-Trajectory runFrame(VectorXd& currentState, Vector4d& currentTorque, bool visualize);
+
+Trajectory runFrame(Vector12d& currentState, Vector4d& currentTorque, bool visualize);
 VectorXd arrayToEigen(double* array, int length);
 int main();
 
@@ -45,7 +49,7 @@ extern "C" {
 
 // in logging.c :
 
-void runVisualize(VectorXd& currentState, Trajectory traj, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath);
+void runVisualize(Vector12d& currentState, Trajectory traj, Vector3d& hoopTransVec, Matrix3d& hoopRotMat, bool displayPath);
 
 
 #endif //MARKER_VISION_V_PP_H

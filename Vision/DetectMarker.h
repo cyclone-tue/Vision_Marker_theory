@@ -24,14 +24,16 @@ using namespace cv;
 using namespace std;
 using namespace Eigen;
 
-
+typedef Matrix<double, 12, 1> Vector12d;
+typedef Matrix<double, Dynamic, 12> MatrixX12;
+typedef Matrix<double, Dynamic, 3> MatrixX3;
 
 class vision {
 public:
-    static bool run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
+    static bool run(Vector12d& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat);
     static void setupVariables(int camera, const char *calibrationFile);
     static void cleanup();
-    static void projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentState, vector<Point2d>& imagePoints);
+    static void projectPointsOntoCam(vector<Point3d> cvPoints, Vector12d& currentState, vector<Point2d>& imagePoints);
     static void writeVideo(Mat frame);
     static Mat debugFrame;  // for visualization.
 private:

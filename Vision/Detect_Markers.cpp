@@ -66,7 +66,7 @@ bool vision::readCameraParameters(String filename, OutputArray cameraMat, Output
 }
 
 
-bool vision::run(VectorXd& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat) {        // visualize should be removed in future version.
+bool vision::run(Vector12d& currentState, Vector3d& hoopTransVec, Matrix3d& hoopRotMat) {        // visualize should be removed in future version.
 
     bool foundMarker = false;
     Mat image, imageCopy;
@@ -306,7 +306,7 @@ void vision::setupVariables(int camera, const char* calibrationFile){
     }
 }
 
-void vision::projectPointsOntoCam(vector<Point3d> cvPoints, VectorXd& currentState, vector<Point2d>& imagePoints){
+void vision::projectPointsOntoCam(vector<Point3d> cvPoints, Vector12d& currentState, vector<Point2d>& imagePoints){
 
     VectorXd temp(12);
     temp << 0,0,0, 0,0,0, 0,0,0, 0,0,0;
