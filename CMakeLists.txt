@@ -85,6 +85,7 @@ target_link_libraries(CycloneVision ${OpenCV_LIBS})
 target_link_libraries(V_PP ${OpenCV_LIBS})
 #target_link_libraries(WebcamTest ${OpenCV_LIBS})
 target_link_libraries(V_PP ${Boost_LIBRARIES})
+target_link_libraries(CycloneVision ${Boost_LIBRARIES})
 
 
 # something else
