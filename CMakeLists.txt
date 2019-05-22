@@ -72,7 +72,7 @@ add_executable(V_PP  ${VISION} ${MUELLER}  V_PP.cpp logging.cpp general.cpp)
 ## build libraries
 
 # Building the main library
-add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp logging.cpp)
+add_library(CycloneVision MODULE ${VISION} ${MUELLER} V_PP.cpp logging.cpp general.cpp)
 
 
 ## link libraries
