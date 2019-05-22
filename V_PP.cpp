@@ -201,9 +201,9 @@ void test_V_PP(){
 }
 */
 
-int main(){
-    setup("Vision/laptop_calibration.txt");
-    test_PP();
-    return 0;
-}
+//int main(){
+//    setup("Vision/laptop_calibration.txt");
+//    test_PP();
+//    return 0;
+//}
 
